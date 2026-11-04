@@ -57,6 +57,8 @@ for rnd in range(8):
                 over = len(m['steps']) - 1          # only the answer or notes overflow: the last step moves on
             if over is None: continue
             cut = bounds[j] + over
+            while cut > bounds[j] and sols[qid][cut].startswith('=='):
+                cut -= 1                            # a continuation line stays with the equation it continues
             if cut > bounds[j] and is_eq(qid, cut, sols) and not is_eq(qid, cut - 1, sols):
                 cut -= 1                            # keep a sentence together with the equation it introduces
             if cut <= bounds[j]:

@@ -134,20 +134,23 @@ def link_terms(body):
 
 # ---------------------------------------------------------------- timeline
 def _sv(t, fs):
-    """SVG text from the small math language: only ^{..} is supported."""
+    """SVG text from the small math language: ^{..} and _{..}."""
     out, i = '', 0
     t = _minus(t)
     while i < len(t):
         if t.startswith('^{', i):
             a, i = _braces(t, i + 1)
             out += f'<tspan dy="{-fs * .38:.1f}" font-size="{fs * .72:.1f}">{_h.escape(a)}</tspan><tspan dy="{fs * .38:.1f}"> </tspan>'
+        elif t.startswith('_{', i):
+            a, i = _braces(t, i + 1)
+            out += f'<tspan dy="{fs * .24:.1f}" font-size="{fs * .72:.1f}">{_h.escape(a)}</tspan><tspan dy="{-fs * .24:.1f}">\u200a</tspan>'
         else:
             out += _h.escape(t[i]); i += 1
     return out
 
 
 def _txt(x, y, t, fs, W, anchor='middle', fill='#16213a', weight=500):
-    plain = re.sub(r'\^\{[^}]*\}', 'x', str(t))
+    plain = re.sub(r'[\^_]\{[^}]*\}', 'x', str(t))
     w = len(plain) * fs * .56
     if anchor == 'middle':
         if x - w / 2 < 3: x, anchor = 3, 'start'
