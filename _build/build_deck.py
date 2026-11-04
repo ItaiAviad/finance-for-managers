@@ -21,7 +21,7 @@ def render(s, total):
                 '<h1><span>ערך הזמן</span> <span style="color:#7fe3d6">של הכסף</span></h1>'
                 '<p class="sub" style="margin-top:20px;font-size:27px;color:#c8d4f2">' + TX('יחידה 2: ערך עתידי, ערך נוכחי, סכום יחיד וסדרות סכומים.') + '</p>'
                 '<p class="sub" style="margin-top:6px;font-size:22px;color:#c8d4f2">' + TX('כל החישובים מוצגים בנוסחאות מתמטיות. איננו עובדים עם לוחות היוון.') + '</p>'
-                '<div class="chipbar" style="margin-top:24px">' + ''.join(f'<span class="chip">{TX(c)}</span>' for c in ['25 שאלות פתורות', '8 שאלות תרגול', '6 שאלות לבית', '12 שאלות רב ברירה']) + '</div></div>'
+                '<div class="chipbar" style="margin-top:24px">' + ''.join(f'<span class="chip">{TX(c)}</span>' for c in ['23 שאלות פתורות', '7 שאלות תרגול', '6 שאלות לבית', '12 שאלות רב ברירה']) + '</div></div>'
                 f'<div style="position:absolute;right:70px;bottom:58px;font-size:22px;color:#c8d4f2"><b style="color:#fff">מנחה: ד״ר שי צבאן</b> · סמסטר {SEC}</div></section>')
     if k == 'end':
         return ('<section class="slide dark s1" id="s-end" data-title="סיום"><div style="position:relative;max-width:980px;margin-top:110px">'

@@ -59,6 +59,7 @@ sup,sub{font-size:.68em;line-height:0}
 .band.dg{background:#fff7e0;border-right:1.2mm solid #f0b429}
 .band.note{background:#eef2ff;border-right:1.2mm solid var(--navy)}
 .band.trap{background:#fde8e6;border-right:1.2mm solid #e0454f}
+.band.warn{background:#fde8e6;border-right:1.6mm solid #c8102e;font-weight:800;color:#8a0f1f}
 .band.ans{background:#dcf5e6;border-right:1.2mm solid var(--inc);font-weight:700}
 .tlw{margin:1.2mm 0;text-align:center;break-inside:avoid}
 .card.tlw{padding:1mm 2mm}
@@ -132,7 +133,7 @@ body += f'<section class="part"><h1>מילון מושגים</h1><div class="glc"
 body += '<section class="part"><h1>במפגש הבא: סוגיית הריבית</h1><p>' + TX('ריבית נקובה מול אפקטיבית, המרות בין תקופות, וריבית ריאלית מול נומינלית.') + '</p></section>'
 cover = (f'<div class="cover"><div class="c-top">{COURSE} · קורס 13005 · מפגש 1</div><div class="c-title">ערך הזמן של הכסף</div>'
          '<div class="c-sub">סיכום מלא של השיעור: ערך עתידי, ערך נוכחי, סכום יחיד וסדרות סכומים.</div><div class="c-line"></div>'
-         '<div class="c-meta">' + TX('25 שאלות פתורות, 8 שאלות תרגול, 6 שאלות לתרגול בבית, 12 שאלות רב ברירה עם פתרונות מלאים, ומילון מושגים.') + '<br>סמסטר <span dir="ltr">2026</span>ג</div>'
+         '<div class="c-meta">' + TX('23 שאלות פתורות, 7 שאלות תרגול, 6 שאלות לתרגול בבית, 12 שאלות רב ברירה עם פתרונות מלאים, ומילון מושגים.') + '<br>סמסטר <span dir="ltr">2026</span>ג</div>'
          '<div class="c-author"><div class="c-name">ד״ר שי צבאן</div><div class="c-mail" dir="ltr">Shay.tsaban@gmail.com</div></div></div>')
 toc = '<div class="toc"><h1>תוכן העניינים</h1><ol>' + ''.join(f'<li>{parts[n][0]["h"]}</li>' for n in range(1, TOTAL_PARTS + 1)) + '</ol></div>'
 page = f'<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>{COURSE} | שיעור 1 | סיכום</title><style>{CSS}</style></head><body>{cover}{toc}{body}</body></html>'

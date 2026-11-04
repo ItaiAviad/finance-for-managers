@@ -30,6 +30,9 @@ ul.lg{padding-inline-start:24px}ul.lg li{margin-bottom:8px}
 .band.dg{background:#fff7e0;border-right:6px solid #f0b429}
 .band.note{background:#eef2ff;border-right:6px solid var(--navy2)}
 .band.trap{background:#fde8e6;border-right:6px solid #e0454f}
+.band.warn{background:#fde8e6;border-right:8px solid #c8102e;font-size:22px;font-weight:800;color:#8a0f1f}
+.tbl2.mmn{font-size:17.5px}
+.tbl2.mmn td,.tbl2.mmn th{padding:4px 10px;line-height:1.22}
 .band.ans{background:var(--incbg);border-right:6px solid var(--inc);font-size:21px;font-weight:700}
 /* reveal: the shell's .st also has to work on svg groups */
 svg .st{transition:opacity .4s ease}
