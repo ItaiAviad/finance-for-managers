@@ -171,3 +171,24 @@ svg .st:not(.show){opacity:0}
   .cout{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 .cap{font-size:17.5px;color:var(--mut);text-align:center;margin:2px 0 0;line-height:1.3}
+/* animated timelines: axis draws, flows grow in turn, each move draws when its step appears */
+.tl .an{transform-box:fill-box}
+.tl .ax{transform-origin:left center}
+.tl .fl{transform-origin:center bottom}
+.tl .mv.f{transform-origin:left center}.tl .mv.b{transform-origin:right center}
+@keyframes tlgrow{from{transform:scaleY(0);opacity:0}to{transform:none;opacity:1}}
+@keyframes tldraw{from{transform:scaleX(0)}to{transform:none}}
+@keyframes tlfade{from{opacity:0}to{opacity:1}}
+.slide.on .tl .ax{animation:tldraw .6s ease both}
+.slide.on .tl .fl:not(.st .fl){animation:tlgrow .45s ease both;animation-delay:var(--d)}
+.slide.on .tl .st.show .fl{animation:tlgrow .45s ease both;animation-delay:calc(var(--d) - .35s)}
+.slide.on .tl .fd{animation:tlfade .4s ease both;animation-delay:var(--d)}
+.slide.on .tl .mvg{animation:tlfade .3s ease both;animation-delay:var(--d)}
+.slide.on .tl .mvg .mv{animation:tldraw .7s ease both;animation-delay:var(--d)}
+.slide.on .tl .mvg .ah{animation:tlfade .25s ease both;animation-delay:calc(var(--d) + .6s)}
+.slide.on .tl .st.show .mv{animation:tldraw .7s ease both}
+.slide.on .tl .st.show .ah{animation:tlfade .25s .6s ease both}
+@media (prefers-reduced-motion:reduce){.tl .an,.tl .mvg{animation:none!important}}
+.mcrow.n4{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mcrow.n4 .mc .o{display:inline-block;width:auto;margin-inline-end:6px}
+.ytbl td,.ytbl th{text-align:center}

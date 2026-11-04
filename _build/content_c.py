@@ -276,6 +276,21 @@ S('s-akey', 'נספח: טבלת סיכום', 'טבלת סיכום: הנושא ו
 
 SL.append(dict(id='s-end', title='סיום', kind='end', part=None, h='המפגש הבא: סוגיית הריבית', body='', cls='', kick=None))
 
+# ================================================================ renumber the lesson questions in the order they now appear
+import re as _re
+_MAIN = [s['id'] for s in SL if _re.fullmatch(r'q\d+', s['id'])]
+QMAP = {int(k[1:]): i + 1 for i, k in enumerate(_MAIN)}
+
+
+def _rn(t):
+    return _re.sub(r'שאלה (<span class="n">)?(\d+)(</span>)?(?!\.\d)', lambda m: f'שאלה {m.group(1) or ""}{QMAP.get(int(m.group(2)), m.group(2))}{m.group(3) or ""}', t)
+
+
+for _s in SL:
+    for _f in ('title', 'h', 'body', 'kick'):
+        if isinstance(_s.get(_f), str):
+            _s[_f] = _rn(_s[_f])
+
 # ================================================================ glossary: h, en, p (simple), f (professional), ex, tr
 G = {
  'tv': dict(h='ערך הזמן של הכסף', en='Time Value of Money', p='אותו סכום שווה יותר היום מאשר בעתיד, כי את הסכום של היום אפשר להשקיע ולצבור עליו ריבית.', f='העיקרון שלפיו שווי של סכום תלוי במועד שבו הוא מתקבל, והפער בין שני מועדים נמדד בריבית.', ex='100 ש״ח היום, בריבית 10%, הם 110 ש״ח בעוד שנה.', tr='ביחידה זו מתעלמים מאינפלציה ומסיכון.'),

@@ -131,7 +131,7 @@ def _st(s):
     return f' class="st" data-n="{s * 10}"' if s else ''
 
 
-def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=46):
+def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=46, fstep=0):
     """Timeline as inline SVG, time running left to right.
     ticks: labels in order ('...' draws dots). flows: {tick: label or ''}. moves: dicts a, b, t (caption), s (reveal step).
     brace: (from, to, label, step). marks: {tick: label}, a dotted line up to a bold label."""
@@ -151,7 +151,8 @@ def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=4
     ay = y                        # arrow tips
     y0 = ay + fh                  # axis
     p = []
-    p.append(f'<line x1="6" y1="{y0}" x2="{W - 12}" y2="{y0}" stroke="#1b2d55" stroke-width="2.6"/><polygon points="{W - 4},{y0} {W - 17},{y0 - 6} {W - 17},{y0 + 6}" fill="#1b2d55"/>')
+    # animation: the axis draws, flows grow one after another, moves draw when their step shows (see deck.css)
+    p.append(f'<g class="an ax"><line x1="6" y1="{y0}" x2="{W - 12}" y2="{y0}" stroke="#1b2d55" stroke-width="2.6"/><polygon points="{W - 4},{y0} {W - 17},{y0 - 6} {W - 17},{y0 + 6}" fill="#1b2d55"/></g>')
     for l in ticks:
         x = X[str(l)]
         if str(l) in ('...', '···'):
@@ -160,14 +161,17 @@ def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=4
             continue
         p.append(f'<line x1="{x:.1f}" y1="{y0 - 6}" x2="{x:.1f}" y2="{y0 + 6}" stroke="#1b2d55" stroke-width="2.2"/>')
         p.append(_txt(x, y0 + fs + 6, str(l), fs, W, weight=600))
-    for k, lab in flows.items():
+    fl = []
+    for i, (k, lab) in enumerate(flows.items()):
         x = X[str(k)]
-        p.append(f'<line x1="{x:.1f}" y1="{y0}" x2="{x:.1f}" y2="{ay + 8}" stroke="#ff6a4d" stroke-width="3"/><polygon points="{x:.1f},{ay} {x - 5.5:.1f},{ay + 11} {x + 5.5:.1f},{ay + 11}" fill="#ff6a4d"/>')
-        if lab: p.append(_txt(x, ly, lab, fs - 1, W, fill='#b8391f', weight=700))
+        g = f'<line x1="{x:.1f}" y1="{y0}" x2="{x:.1f}" y2="{ay + 8}" stroke="#ff6a4d" stroke-width="3"/><polygon points="{x:.1f},{ay} {x - 5.5:.1f},{ay + 11} {x + 5.5:.1f},{ay + 11}" fill="#ff6a4d"/>'
+        if lab: g += _txt(x, ly, lab, fs - 1, W, fill='#b8391f', weight=700)
+        fl.append(f'<g class="an fl" style="--d:{.35 + i * .12:.2f}s">{g}</g>')
+    p.append(f'<g{_st(fstep)}>' + ''.join(fl) + '</g>' if fstep else ''.join(fl))
     for k, lab in marks.items():
         x = X[str(k)]
         p.append(f'<line x1="{x:.1f}" y1="{y0}" x2="{x:.1f}" y2="{ly + 5}" stroke="#16213a" stroke-width="1.6" stroke-dasharray="2 4"/>')
-        p.append(_txt(x, ly, lab, fs, W, weight=800))
+        p.append('<g class="an fd" style="--d:.6s">' + _txt(x, ly, lab, fs, W, weight=800) + '</g>')
     for b in brace:
         a, c, lab = b[0], b[1], b[2]
         s = b[3] if len(b) > 3 else 0
@@ -175,14 +179,15 @@ def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=4
         yb = by + 2
         p.append(f'<g{_st(s)}><path d="M{xa:.1f} {yb + 10} V{yb + 2} H{xc:.1f} V{yb + 10}" fill="none" stroke="#5d6a86" stroke-width="1.8"/>{_txt((xa + xc) / 2, by - 2, lab, fs - 1, W, fill="#2a3858", weight=600)}</g>')
     ym = y0 + fs + 24
-    for m in moves:
+    for mi, m in enumerate(moves):
+        dly = f' style="--d:{1.0 + mi * .45:.2f}s"'
         xa, xb = X[str(m['a'])], X[str(m['b'])]
         fwd = xb >= xa
         if xa == xb:
             col = m.get('c') or '#0f9d90'
             g = (f'<line x1="{xa:.1f}" y1="{y0 + fs + 9}" x2="{xa:.1f}" y2="{ym}" stroke="#8a93aa" stroke-width="1.4" stroke-dasharray="2 4"/><circle cx="{xa:.1f}" cy="{ym}" r="5.5" fill="{col}"/>')
             if m.get('t'): g += _txt(xa, ym + fs + 5, m['t'], fs - 1, W, fill=col, weight=700)
-            p.append(f'<g{_st(m.get("s", 0))}>{g}</g>')
+            p.append(f'<g{_st(m.get("s", 0)) or " class=\"mvg\""}{dly}>{g}</g>')
             ym += fs + 26
             continue
         col = m.get('c') or ('#0f9d90' if fwd else '#6d4df2')
@@ -190,11 +195,11 @@ def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=4
         g = (f'<line x1="{xa:.1f}" y1="{y0 + fs + 9}" x2="{xa:.1f}" y2="{ym}" stroke="#8a93aa" stroke-width="1.4" stroke-dasharray="2 4"/>'
              f'<line x1="{xb:.1f}" y1="{y0 + fs + 9}" x2="{xb:.1f}" y2="{ym}" stroke="#8a93aa" stroke-width="1.4" stroke-dasharray="2 4"/>'
              f'<circle cx="{xa:.1f}" cy="{ym}" r="4.5" fill="{col}"/>'
-             f'<line x1="{xa:.1f}" y1="{ym}" x2="{xb - sgn * 9:.1f}" y2="{ym}" stroke="{col}" stroke-width="2.6" stroke-dasharray="7 5"/>'
-             f'<polygon points="{xb:.1f},{ym} {xb - sgn * 11:.1f},{ym - 6} {xb - sgn * 11:.1f},{ym + 6}" fill="{col}"/>')
+             f'<line class="an mv {"f" if fwd else "b"}" x1="{xa:.1f}" y1="{ym}" x2="{xb - sgn * 9:.1f}" y2="{ym}" stroke="{col}" stroke-width="2.6" stroke-dasharray="7 5"/>'
+             f'<polygon class="an ah" points="{xb:.1f},{ym} {xb - sgn * 11:.1f},{ym - 6} {xb - sgn * 11:.1f},{ym + 6}" fill="{col}"/>')
         if m.get('t'):
             g += _txt((xa + xb) / 2, ym + fs + 5, m['t'], fs - 1, W, fill=col, weight=700)
-        p.append(f'<g{_st(m.get("s", 0))}>{g}</g>')
+        p.append(f'<g{_st(m.get("s", 0)) or " class=\"mvg\""}{dly}>{g}</g>')
         ym += fs + 26
     H = ym - 8 if moves else y0 + fs + 16
     return f'<svg class="tl" dir="ltr" viewBox="0 0 {W} {H:.0f}" role="img">' + ''.join(p) + '</svg>'
