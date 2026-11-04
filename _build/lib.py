@@ -68,13 +68,15 @@ def TX(s):
 # symbols of the general formulas, for the legend under a highlighted formula
 SYM = [('PMT_{1}', 'PMT<sub>1</sub>', 'התזרים הראשון'), ('FVFA', 'FVFA', 'מקדם ערך עתידי סדרתי'), ('PVFA', 'PVFA', 'מקדם ערך נוכחי סדרתי'),
        ('LOAN', 'LOAN', 'סכום ההלוואה'), ('PMT', 'PMT', 'תזרים תקופתי'), ('PV', 'PV', 'ערך נוכחי'), ('FV', 'FV', 'ערך עתידי'),
-       ('r_{1}', 'r<sub>1</sub>, t<sub>1</sub>', 'ריבית ומספר תקופות בקטע הראשון'), ('g', 'g', 'שיעור צמיחה'), ('r', 'r', 'ריבית לתקופה'),
+       ('r_{1}', 'r<sub>1</sub>, t<sub>1</sub>', 'ריבית ומספר תקופות בקטע הראשון'), ('r_{ann}', 'r<sub>ann</sub>', 'ריבית אפקטיבית שנתית'), ('r_{k}', 'r<sub>k</sub>', 'ריבית לתקופה קצרה'), ('r_{nom}', 'r<sub>nom</sub>', 'ריבית שנתית נקובה'),
+       ('r_{N}', 'r<sub>N</sub>', 'ריבית נומינלית'), ('r_{R}', 'r<sub>R</sub>', 'ריבית ריאלית'), ('π', 'π', 'שיעור האינפלציה'), ('k', 'k', 'מספר התקופות הקצרות בשנה'),
+       ('g', 'g', 'שיעור צמיחה'), ('r', 'r', 'ריבית לתקופה'),
        ('t', 't', 'מספר תקופות; בסדרה, מספר התשלומים'), ('n', 'n', 'מספר תקופות ההתאמה')]
 
 
 def is_formula(s):
     """A general formula: symbols only, no figures beyond the constant 1."""
-    if not re.search(r'\b(PV|FV|PMT|LOAN)', s): return False
+    if not re.search(r'\b(PV|FV|PMT|LOAN)|r_\{(ann|k|nom|N|R)\}', s): return False
     return not re.search(r'\d{2,}|\.\d|[02-9]', re.sub(r'_\{[^}]*\}', '', s))
 
 

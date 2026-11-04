@@ -2,7 +2,7 @@
 # Usage: python3 test_deck.py [path to presentation.html]
 import json, os, re, subprocess, sys, tempfile
 H = os.path.dirname(os.path.abspath(__file__))
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(H, '..', 'lectures', 'lecture-1', 'presentation.html')
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(H, '..', 'lectures', 'lecture-' + os.environ.get('LESSON', '1'), 'presentation.html')
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 EXPECT = {'fv': '608,326.45', 'fvvar': '419,901.68', 'nper': '3', 'pv': '7,129,861.79', 'pvvar': '345,441.09', 'cmp': '118,814.05', 'flows': '37,919.44', 'fva': '39,586.65',
           'pmtfv': '28,951.00', 'splitfv': '80,536.54', 'pva': '9,272.04', 'loan': '16,607.15', 'splitpv': '67,176.05', 'perp': '16,792,385.66'}

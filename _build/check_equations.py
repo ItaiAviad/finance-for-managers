@@ -3,7 +3,7 @@
 import html, os, re, sys
 from html.parser import HTMLParser
 H = os.path.dirname(os.path.abspath(__file__))
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(H, '..', 'lectures', 'lecture-1', 'presentation.html')
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(H, '..', 'lectures', 'lecture-' + os.environ.get('LESSON', '1'), 'presentation.html')
 
 
 class Node:

@@ -3,7 +3,9 @@
 import json, os, re, subprocess, sys, tempfile
 H = os.path.dirname(os.path.abspath(__file__))
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-DECK = os.path.join(H, '..', 'lectures', 'lecture-1', 'presentation.html')
+LN = os.environ.get('LESSON', '1')
+DECK = os.path.join(H, '..', 'lectures', f'lecture-{LN}', 'presentation.html')
+FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',)}
 MEASURE = r'''<style>*{transition:none!important;animation:none!important}</style><script>
 const D=window.__deck,st=document.getElementById('stage'),R={};
 D.slides.forEach((s,i)=>{if(!s.classList.contains('qslide'))return;D.show(i);D.setAll(s,true);
@@ -31,14 +33,14 @@ def is_eq(qid, idx, sols):
 def sol_lists():
     """The final step list of every question, after the linking sentences, as the deck builds them."""
     sys.path.insert(0, H)
-    R = lambda f: open(os.path.join(H, f), encoding='utf8').read()
-    g = {'MODE': 'deck', 'R': R, '__name__': 'x'}
-    src = R('content_a.py').replace('    sol, bounds, tls = _sync(sid, sol, tl, cuts)', '    sol, bounds, tls = _sync(sid, sol, tl, cuts); SOLS[sid] = sol')
-    exec('SOLS = {}\n' + src, g); exec(R('content_b.py'), g); exec(R('content_c.py'), g)
+    raw = lambda f: open(os.path.join(H, f), encoding='utf8').read()
+    R = lambda f: raw(f).replace('    sol, bounds, tls = _sync(sid, sol, tl, cuts)', '    sol, bounds, tls = _sync(sid, sol, tl, cuts); SOLS[sid] = sol') if f == 'core.py' else raw(f)
+    g = {'MODE': 'deck', 'R': R, '__name__': 'x', 'SOLS': {}}
+    for f in FILES[LN]: exec(R(f), g)
     return g['SOLS']
 
 
-SPL = os.path.join(H, 'splits.json')
+SPL = os.path.join(H, 'splits.json' if LN == '1' else f'splits{LN}.json')
 for rnd in range(8):
     splits = json.load(open(SPL))
     sols = sol_lists()

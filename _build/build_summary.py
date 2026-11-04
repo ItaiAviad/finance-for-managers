@@ -4,7 +4,9 @@ H = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, H)
 R = lambda f: open(os.path.join(H, f), encoding='utf8').read()
 MODE = 'pdf'
-for f in ('content_a.py', 'content_b.py', 'content_c.py'):
+FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',)}
+LN = os.environ.get('LESSON', '1')
+for f in FILES[LN]:
     exec(R(f))
 FONTS = os.path.join(H, '..', '..', 'iit-build', 'fonts')
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
@@ -130,13 +132,13 @@ for n in range(1, TOTAL_PARTS + 1):
     body += f'<section class="part"><h1><span class="sn">{n}</span>{op["h"]}</h1>{inner}</section>'
 gl = ''.join(f'<div class="gl"><div class="th">{g["h"]}<small>{g["en"]}</small></div><p><b>בפשטות:</b> {g["p"]}</p><p><b>בלשון מקצועית:</b> {g["f"]}</p><p><b>דוגמה:</b> {g["ex"]}</p><p><b>שימו לב:</b> {g["tr"]}</p></div>' for g in G.values())
 body += f'<section class="part"><h1>מילון מושגים</h1><div class="glc">{gl}</div></section>'
-body += '<section class="part"><h1>במפגש הבא: סוגיית הריבית</h1><p>' + TX('ריבית נקובה מול אפקטיבית, המרות בין תקופות, וריבית ריאלית מול נומינלית.') + '</p></section>'
-cover = (f'<div class="cover"><div class="c-top">{COURSE} · קורס 13005 · מפגש 1</div><div class="c-title">ערך הזמן של הכסף</div>'
-         '<div class="c-sub">סיכום מלא של השיעור: ערך עתידי, ערך נוכחי, סכום יחיד וסדרות סכומים.</div><div class="c-line"></div>'
-         '<div class="c-meta">' + TX('23 שאלות פתורות, 7 שאלות תרגול, 6 שאלות לתרגול בבית, 12 שאלות רב ברירה עם פתרונות מלאים, ומילון מושגים.') + '<br>סמסטר <span dir="ltr">2026</span>ג</div>'
+body += f'<section class="part"><h1>במפגש הבא: {LESSON["end_h"]}</h1><p>' + TX(LESSON['end_p']) + '</p></section>'
+cover = (f'<div class="cover"><div class="c-top">{COURSE} · קורס 13005 · מפגש {LESSON["n"]}</div><div class="c-title">{LESSON["title"]}</div>'
+         f'<div class="c-sub">{LESSON["cover_sub"]}</div><div class="c-line"></div>'
+         '<div class="c-meta">' + TX(LESSON['cover_meta']) + '<br>סמסטר <span dir="ltr">2026</span>ג</div>'
          '<div class="c-author"><div class="c-name">ד״ר שי צבאן</div><div class="c-mail" dir="ltr">Shay.tsaban@gmail.com</div></div></div>')
 toc = '<div class="toc"><h1>תוכן העניינים</h1><ol>' + ''.join(f'<li>{parts[n][0]["h"]}</li>' for n in range(1, TOTAL_PARTS + 1)) + '</ol></div>'
-page = f'<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>{COURSE} | שיעור 1 | סיכום</title><style>{CSS}</style></head><body>{cover}{toc}{body}</body></html>'
+page = f'<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>{COURSE} | שיעור {LESSON["n"]} | סיכום</title><style>{CSS}</style></head><body>{cover}{toc}{body}</body></html>'
 for bad in ('—', '־'):
     assert bad not in page, bad
 d = tempfile.mkdtemp(dir=os.environ.get('TMPDIR'))
@@ -144,7 +146,7 @@ for f in ('david.ttf', 'davidbd.ttf'):
     shutil.copy(os.path.join(FONTS, f), d)
 p = os.path.join(d, 'summary.html')
 open(p, 'w', encoding='utf8').write(page)
-out = os.path.abspath(os.path.join(H, '..', 'lectures', 'lecture-1', 'summary.pdf'))
+out = os.path.abspath(os.path.join(H, '..', 'lectures', f'lecture-{LN}', 'summary.pdf'))
 subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', f'--user-data-dir={d}/p', '--no-pdf-header-footer', '--virtual-time-budget=8000', f'--print-to-pdf={out}', 'file://' + p], capture_output=True, timeout=180)
 import fitz
 doc = fitz.open(out)
