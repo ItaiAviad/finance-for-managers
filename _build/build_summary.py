@@ -75,6 +75,7 @@ sup,sub{font-size:.68em;line-height:0}
 .tlk i{display:inline-block;vertical-align:middle;margin-left:1.2mm}
 .tlk .kf{width:.9mm;height:3.4mm;background:#ff6a4d}.tlk .kv{width:5mm;border-top:.6mm dashed #0f9d90}.tlk .kb{width:5mm;border-top:.6mm dashed #6d4df2}.tlk .kd{width:2.4mm;height:2.4mm;border-radius:50%;background:#0f9d90}
 .rg{display:none}
+.qstem.in{background:#f6f2ea;border-radius:1.2mm;padding:.8mm 2mm;margin-bottom:1mm}
 .cap{font-size:10pt;color:var(--mut);text-align:center;margin:.4mm 0 0}
 .lead{margin:0 0 1.2mm}
 .lg{margin:0}

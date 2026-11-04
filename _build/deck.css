@@ -213,3 +213,5 @@ svg .st:not(.show){opacity:0}
 svg .st.rg.past{opacity:.22}
 .tlw.cont{margin-bottom:8px;padding:4px 12px}
 @media print{.tl .rg{display:none}}
+.qstem.in{background:#f6f2ea;border-radius:10px;padding:7px 12px;margin-bottom:6px}
+.qstem.in p{font-size:20px;line-height:1.4;font-weight:600}
