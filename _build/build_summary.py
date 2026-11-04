@@ -67,6 +67,14 @@ sup,sub{font-size:.68em;line-height:0}
 .qstem{font-weight:700;margin-bottom:1mm}
 .qstem p{margin:0 0 .6mm}
 .sp{margin:0 0 1mm}
+.eq.fx{width:fit-content;max-width:100%;margin-left:auto;background:#fff3ec;border:.3mm solid #ffc4b0;border-radius:1.4mm;padding:0 2.4mm}
+.eq.fx.c{margin-right:auto}
+.lgd{display:flex;flex-wrap:wrap;gap:0 4mm;font-size:9.8pt;color:#2a3858;margin:.4mm 0 1.2mm}
+.lgd b{color:#c4421f}.lgd i{font-style:normal;font-weight:700;unicode-bidi:isolate;margin-left:1mm}
+.tlk{display:flex;flex-wrap:wrap;justify-content:center;gap:0 4mm;font-size:9pt;color:#5d6a86}
+.tlk i{display:inline-block;vertical-align:middle;margin-left:1.2mm}
+.tlk .kf{width:.9mm;height:3.4mm;background:#ff6a4d}.tlk .kv{width:5mm;border-top:.6mm dashed #0f9d90}.tlk .kb{width:5mm;border-top:.6mm dashed #6d4df2}.tlk .kd{width:2.4mm;height:2.4mm;border-radius:50%;background:#0f9d90}
+.rg{display:none}
 .cap{font-size:10pt;color:var(--mut);text-align:center;margin:.4mm 0 0}
 .lead{margin:0 0 1.2mm}
 .lg{margin:0}

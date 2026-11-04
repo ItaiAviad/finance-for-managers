@@ -7,7 +7,9 @@ function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show')
 function groups(s){const m=new Map();$$('.st',s).forEach(e=>{const n=+e.dataset.n||0;if(!m.has(n))m.set(n,[]);m.get(n).push(e);});return [...m.keys()].sort((a,b)=>a-b).map(k=>m.get(k));}
 function pending(s){return groups(s).filter(g=>!g[0].classList.contains('show'));}
 function shown(s){return groups(s).filter(g=>g[0].classList.contains('show'));}
-function stepInfo(){const g=groups(slides[cur]),left=pending(slides[cur]).length;$('#stepn').textContent=g.length&&left?('נותרו '+left+' שלבים'):'';if(left===1)$('#stepn').textContent='נותר שלב אחד';}
+/* the ring of the current step stays bright, rings of earlier steps fade */
+function focusRings(s){const on=$$('.st.show',s).map(e=>+e.dataset.n||0);const top=on.length?Math.max(...on):-1;$$('.rg',s).forEach(r=>r.classList.toggle('past',(+r.dataset.n)<top));}
+function stepInfo(){focusRings(slides[cur]);const g=groups(slides[cur]),left=pending(slides[cur]).length;$('#stepn').textContent=g.length&&left?('נותרו '+left+' שלבים'):'';if(left===1)$('#stepn').textContent='נותר שלב אחד';}
 function setAll(s,on){$$('.st',s).forEach(e=>e.classList.toggle('show',on));}
 
 /* ---------- multiple choice checks ---------- */

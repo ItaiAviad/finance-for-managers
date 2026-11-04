@@ -12,7 +12,7 @@ open(p, 'w', encoding='utf8').write(src.replace('</body>', INJ))
 all_ids = re.findall(r'<section class="slide[^"]*" id="([^"]+)"', src)
 def one(i):
     n = all_ids.index(i) + 1
-    subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', f'--user-data-dir={d}/p{n}', '--window-size=1280,764', '--virtual-time-budget=3000', '--hide-scrollbars', f'--screenshot={out}/{n:03d}-{i}.png', f'file://{p}#{i}'], capture_output=True, timeout=120)
-with cf.ThreadPoolExecutor(6) as ex:
+    subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', f'--user-data-dir={d}/p{n}', '--window-size=1280,764', '--virtual-time-budget=3000', '--hide-scrollbars', f'--screenshot={out}/{n:03d}-{i}.png', f'file://{p}#{i}'], capture_output=True, timeout=240)
+with cf.ThreadPoolExecutor(4) as ex:
     list(ex.map(one, ids))
 print(len(ids))

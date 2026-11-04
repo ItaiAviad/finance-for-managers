@@ -65,8 +65,38 @@ def TX(s):
     return ''.join(out)
 
 
-def EQ(s, cls=''):
-    return f'<div class="eq {cls}" dir="ltr">{M(s)}</div>'
+# symbols of the general formulas, for the legend under a highlighted formula
+SYM = [('PMT_{1}', 'PMT<sub>1</sub>', 'התזרים הראשון'), ('FVFA', 'FVFA', 'מקדם ערך עתידי סדרתי'), ('PVFA', 'PVFA', 'מקדם ערך נוכחי סדרתי'),
+       ('LOAN', 'LOAN', 'סכום ההלוואה'), ('PMT', 'PMT', 'תזרים תקופתי'), ('PV', 'PV', 'ערך נוכחי'), ('FV', 'FV', 'ערך עתידי'),
+       ('r_{1}', 'r<sub>1</sub>, t<sub>1</sub>', 'ריבית ומספר תקופות בקטע הראשון'), ('g', 'g', 'שיעור צמיחה'), ('r', 'r', 'ריבית לתקופה'),
+       ('t', 't', 'מספר תקופות; בסדרה, מספר התשלומים'), ('n', 'n', 'מספר תקופות ההתאמה')]
+
+
+def is_formula(s):
+    """A general formula: symbols only, no figures beyond the constant 1."""
+    if not re.search(r'\b(PV|FV|PMT|LOAN)', s): return False
+    return not re.search(r'\d{2,}|\.\d|[02-9]', re.sub(r'_\{[^}]*\}', '', s))
+
+
+def legend(s):
+    body = re.sub(r'\\[fh]', ' ', s)
+    seen, out = set(), []
+    for key, show, heb in SYM:
+        k = re.escape(key)
+        pat = k if '{' in key else r'(?<![A-Za-z])' + k + r'(?![A-Za-z])'
+        if re.search(pat, body) and show not in seen:
+            if key == 'PMT' and 'PMT_{1}' in body and not re.search(r'PMT(?!_)', body): continue
+            if key in ('r', 't') and 'r_{1}' in body and not re.search(r'(?<![A-Za-z_{])' + key + r'(?![A-Za-z_])', re.sub(r'[rt]_\{\d\}', '', body)): continue
+            seen.add(show)
+            out.append(f'<span><i dir="ltr">{show}</i> {heb}</span>')
+            body = re.sub(pat, ' ', body)
+    return '<div class="lgd"><b>מקרא:</b> ' + ''.join(out) + '</div>' if out else ''
+
+
+def EQ(s, cls='', key=False):
+    fx = ' fx' if is_formula(s) else ''
+    e = f'<div class="eq {cls}{fx}" dir="ltr">{M(s)}</div>'
+    return f'<div class="fxw">{e}{legend(s)}</div>' if key and fx else e
 
 
 AUTO = [('FVFA', 'fvfa'), ('PVFA', 'pvfa'), ('PMT', 'pmt'), ('PV', 'pv'), ('FV', 'fv')]
@@ -131,7 +161,25 @@ def _st(s):
     return f' class="st" data-n="{s * 10}"' if s else ''
 
 
-def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=46, fstep=0):
+class TLS(str):
+    """Rendered timeline that remembers its arguments, so a question can re-render it with synced steps."""
+    def __new__(cls, html, args, kw, suffix=''):
+        o = super().__new__(cls, html + suffix); o.args, o.kw, o.suffix = args, kw, suffix
+        return o
+
+    def __add__(self, other):
+        return TLS(str(self)[:len(str(self)) - len(self.suffix)], self.args, self.kw, self.suffix + other)
+
+    def redo(self, **kw):
+        k = dict(self.kw); k.update(kw)
+        return TLS(_TL(*self.args, **k), self.args, k, self.suffix)
+
+
+def TL(*args, **kw):
+    return TLS(_TL(*args, **kw), args, kw)
+
+
+def _TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=46, fstep=0, rings=None):
     """Timeline as inline SVG, time running left to right.
     ticks: labels in order ('...' draws dots). flows: {tick: label or ''}. moves: dicts a, b, t (caption), s (reveal step).
     brace: (from, to, label, step). marks: {tick: label}, a dotted line up to a bold label."""
@@ -178,6 +226,10 @@ def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=4
         xa, xc = X[str(a)], X[str(c)]
         yb = by + 2
         p.append(f'<g{_st(s)}><path d="M{xa:.1f} {yb + 10} V{yb + 2} H{xc:.1f} V{yb + 10}" fill="none" stroke="#5d6a86" stroke-width="1.8"/>{_txt((xa + xc) / 2, by - 2, lab, fs - 1, W, fill="#2a3858", weight=600)}</g>')
+    for rg in rings or []:
+        if str(rg['a']) not in X: continue
+        x = X[str(rg['a'])]
+        p.append(f'<g class="st rg" data-n="{rg["s"] * 10}"><circle cx="{x:.1f}" cy="{y0 + fs * .45:.1f}" r="{fs * 1.05:.1f}" fill="rgba(255,106,77,.12)" stroke="#ff6a4d" stroke-width="3"/></g>')
     ym = y0 + fs + 24
     for mi, m in enumerate(moves):
         dly = f' style="--d:{1.0 + mi * .45:.2f}s"'
@@ -202,4 +254,10 @@ def TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=4
         p.append(f'<g{_st(m.get("s", 0)) or " class=\"mvg\""}{dly}>{g}</g>')
         ym += fs + 26
     H = ym - 8 if moves else y0 + fs + 16
-    return f'<svg class="tl" dir="ltr" viewBox="0 0 {W} {H:.0f}" role="img">' + ''.join(p) + '</svg>'
+    k = []
+    if flows: k.append('<span><i class="kf"></i>תזרים</span>')
+    if any(X[str(m['b'])] > X[str(m['a'])] for m in moves): k.append('<span><i class="kv"></i>דחיפה קדימה</span>')
+    if any(X[str(m['b'])] < X[str(m['a'])] for m in moves): k.append('<span><i class="kb"></i>משיכה אחורה</span>')
+    if any(m['a'] == m['b'] for m in moves): k.append('<span><i class="kd"></i>לאן הגיעה הנוסחה</span>')
+    key = f'<div class="tlk">{"".join(k)}</div>' if len(k) > 1 else ''
+    return f'<svg class="tl" dir="ltr" viewBox="0 0 {W} {H:.0f}" role="img">' + ''.join(p) + '</svg>' + key

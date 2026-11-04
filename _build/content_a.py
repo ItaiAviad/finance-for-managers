@@ -1,9 +1,11 @@
 # Lesson content, shared by the deck and the summary. Executed with MODE = 'deck' or 'pdf'.
 from lib import *
+import re
 
 COURSE = 'מימון למנהלות ומנהלים'
 TOTAL_PARTS = 10
-KEEP_SPLIT = set(R('keep_split.txt').split())   # question slides that do not fit on one slide
+import json
+SPLITS = json.loads(R('splits.json'))   # question id -> step indices where a new slide starts (autofit.py)
 SL = []            # every slide, in order
 CUR = [None]       # current part number
 
@@ -29,9 +31,10 @@ def BAND(kind, text, n=0):
     return ST(n, inner, cls='band ' + kind) if n else f'<div class="band {kind}">{inner}</div>'
 
 
-def TABLE(head, rows, cls=''):
+def TABLE(head, rows, cls='', rev=0):
+    """rev: reveal the rows one by one, starting at step rev (the first row stays visible)."""
     h = ''.join(f'<th>{TX(x)}</th>' for x in head)
-    b = ''.join('<tr>' + ''.join(f'<td>{TX(c)}</td>' for c in r) + '</tr>' for r in rows)
+    b = ''.join((f'<tr class="st" data-n="{(rev + i - 1) * 10}">' if rev and i else '<tr>') + ''.join(f'<td>{TX(c)}</td>' for c in r) + '</tr>' for i, r in enumerate(rows))
     return f'<table class="tbl2 {cls}"><tr>{h}</tr>{b}</table>'
 
 
@@ -45,7 +48,8 @@ def mc(qid, q, opts, a, why):
 
 def MCS(sid, title, h, items):
     """A slide of multiple choice checks, side by side."""
-    S(sid, title, h, f'<div class="mcrow n{len(items)}">' + ''.join(items) + '</div>', kick=f'חלק {CUR[0]} · בדיקת הבנה')
+    shown = items[:1] + [ST(i, x) for i, x in enumerate(items[1:], 1)]   # one question at a time
+    S(sid, title, h, f'<div class="mcrow n{len(items)}">' + ''.join(shown) + '</div>', kick=f'חלק {CUR[0]} · בדיקת הבנה')
 
 
 def opener(n, title, q, learn, mins, note=''):
@@ -53,28 +57,17 @@ def opener(n, title, q, learn, mins, note=''):
     SL.append(dict(id=f'p-{n}', title=f'פתיחת חלק {n}: {title}', h=title, kind='opener', part=n, q=q, learn=learn, mins=mins, note=note, cls='', kick=None, body=''))
 
 
-def calc(cid, title, intro, fields, pdfx, h=None):
-    """Interactive calculator: fields are (key, label, default) or (key, label, default, [(value, text)...])."""
-    if MODE == 'pdf':
-        S('c-' + cid, title, h or title, f'<div class="calcp"><b>מחשבון במצגת.</b> {TX(intro)} <b>דוגמה:</b> {TX(pdfx)}</div>', kind='calcp')
-        return
-    fs = ''
-    for f in fields:
-        if len(f) == 4:
-            opts = ''.join(f'<option value="{v}"{" selected" if v == f[2] else ""}>{t}</option>' for v, t in f[3])
-            fs += f'<label class="cf"><span>{TX(f[1])}</span><select data-k="{f[0]}">{opts}</select></label>'
-        else:
-            fs += f'<label class="cf"><span>{TX(f[1])}</span><input data-k="{f[0]}" value="{f[2]}" dir="ltr" inputmode="decimal" autocomplete="off" spellcheck="false"></label>'
-    body = (f'<div class="calc" data-calc="{cid}"><div class="cin"><p class="cint">{TX(intro)}</p><div class="cfs">{fs}</div></div>'
-            f'<div class="cout" id="out-{cid}"></div></div>')
-    S('c-' + cid, title, h or title, body, kick=f'חלק {CUR[0]} · מחשבון')
-
+def calc(*args, **kw):
+    """Calculators were removed at the lecturer's request (2026-11-04): the course solves everything by the formulas."""
+    return
 
 def _solitems(items, start=1):
     out, n = [], start
     for it in items:
         if it.startswith('=!'):
             out.append(ST(n, M(it[2:]), cls='eq fit').replace('class="st eq fit"', 'class="st eq fit" dir="ltr"'))
+        elif it.startswith('=') and is_formula(it[1:]):
+            out.append(ST(n, EQ(it[1:], key=True), cls='fxs'))
         elif it.startswith('='):
             out.append(ST(n, M(it[1:]), cls='eq').replace('class="st eq"', 'class="st eq" dir="ltr"'))
         else:
@@ -83,34 +76,86 @@ def _solitems(items, start=1):
     return ''.join(out), n
 
 
+exec(R('steps_x.py'))
+TIME = re.compile(r'(?:זמנים|בזמנים) (\d+) עד (\d+)|זמן (מינוס )?(\d+)|בזמנים ((?:\d+, )*\d+ ו-\d+)')
+
+
+def _times(text):
+    """Times named in a step's sentence: 'בזמן 9', 'לזמן מינוס 1', 'בזמנים 1 עד 24', 'בזמנים 2, 5 ו-8'."""
+    t = re.sub(r'<[^>]+>|\$[^$]*\$', ' ', text)
+    out = []
+    for m in TIME.finditer(t):
+        if m.group(1): out += [m.group(1), m.group(2)]
+        elif m.group(4): out.append(('-' if m.group(3) else '') + m.group(4))
+        elif m.group(5): out += re.findall(r'\d+', m.group(5))
+    return list(dict.fromkeys(out))
+
+
+def _sync(sid, sol, tl, cuts):
+    """Insert the linking sentences, then render one timeline per slide of the question: each step marks
+    its own times with a ring, each move appears on the step that explains it, and a continuation slide
+    starts with the earlier moves already drawn."""
+    sol2, at = [], {}
+    for i, it in enumerate(sol):
+        if (sid, i) in CONN: sol2.append(CONN[(sid, i)])
+        at[i] = len(sol2); sol2.append(it)
+    bounds = [0] + list(cuts) + [len(sol2)]
+    if not isinstance(tl, TLS):
+        return sol2, bounds, [tl] + [None] * len(cuts)
+    ticks = [str(x) for x in tl.args[0]]
+    step = lambda old: at[old - 1] + 1 if old and old - 1 in at else old
+    moves = [dict(m, s=step(m.get('s', 0))) for m in tl.kw.get('moves') or []]
+    rings = []
+    for k, it in enumerate(sol2):
+        if it.startswith('='): continue
+        named = [x for x in _times(it) if x in ticks][:4]
+        rings += [dict(a=x, s=k + 1) for x in named]
+        for m in moves:                       # a move without a step appears where its destination is first named
+            if not m['s'] and str(m['b']) in named: m['s'] = k + 1
+    out = []
+    for j in range(len(bounds) - 1):
+        lo, hi = bounds[j], bounds[j + 1]
+        mv = [dict(m, s=0 if m['s'] <= lo and j else (m['s'] - lo if m['s'] else 0)) for m in moves if m['s'] <= hi]
+        if j == 0: mv = [dict(m, s=m['s']) for m in moves if m['s'] <= hi]
+        rg = [dict(r, s=r['s'] - lo) for r in rings if lo < r['s'] <= hi]
+        if j == 0:
+            out.append(tl.redo(moves=mv, rings=rg))
+        elif rg or any(m['s'] for m in mv):     # a continuation slide repeats the timeline only when it marks something new on it
+            out.append(tl.redo(moves=mv, rings=rg, W=1120, fs=16, fh=24))
+        else:
+            out.append(None)
+    return sol2, bounds, out
+
+
 def Q(sid, tag, title, stem, sol, ans, note=None, tl=None, split=None, wide=False, kick=None, stemfs=''):
-    """A worked question. sol: prose, or '=' + math for a display equation. note: list of (kind, text)."""
+    """A worked question. sol: prose, or '=' + math for a display equation. note: list of (kind, text).
+    Where the solution breaks into further slides comes from splits.json (written by autofit.py)."""
     note = note or []
     k = kick or f'חלק {CUR[0]} · {tag}'
     stem_html = ''.join(f'<p>{TX(x)}</p>' for x in stem)
     head = f'{tag}: {title}'
     title_s = f'{tag}: {title}'
+    cuts = SPLITS.get(sid, []) if MODE == 'deck' else []
+    sol, bounds, tls = _sync(sid, sol, tl, cuts)
     if MODE == 'pdf':
         s1, n = _solitems(sol)
-        b = (f'<div class="qstem">{stem_html}</div>' if stem else '') + (f'<div class="tlw">{tl}</div>' if tl else '') + f'<div class="sol">{s1}</div><div class="band ans"><b>תשובה:</b> {TX(ans)}</div>' + ''.join(BAND(a, t) for a, t in note)
+        b = (f'<div class="qstem">{stem_html}</div>' if stem else '') + (f'<div class="tlw">{tls[0]}</div>' if tl else '') + f'<div class="sol">{s1}</div><div class="band ans"><b>תשובה:</b> {TX(ans)}</div>' + ''.join(BAND(a, t) for a, t in note)
         S(sid, title_s, head, b, kind='q')
         return
-    if split is not None and not wide and sid not in KEEP_SPLIT:
-        split = None
-    first = sol if split is None else sol[:split]
-    rest = [] if split is None else sol[split:]
-    s1, n = _solitems(first)
-    end = ST(n, f'<b>תשובה:</b> {TX(ans)}', cls='band ans') + ''.join(BAND(a, t, n + 1 + i) for i, (a, t) in enumerate(note))
-    if wide:
-        body = (f'<div class="card qstem wide {stemfs}">{stem_html}</div>' if stem else '') + (f'<div class="card tlw">{tl}</div>' if tl else '') + f'<div class="solw">{s1}{"" if rest else end}</div>'
-    else:
-        body = (f'<div class="qg"><div class="qr">' + (f'<div class="card qstem {stemfs}">{stem_html}</div>' if stem else '') + (f'<div class="card tlw">{tl}</div>' if tl else '') + '</div>'
-                f'<div class="solw">{s1}{"" if rest else end}</div></div>')
-    S(sid, title_s, head, body, kick=k, cls='qslide')
-    if rest:
-        s2, n2 = _solitems(rest)
-        end2 = ST(n2, f'<b>תשובה:</b> {TX(ans)}', cls='band ans') + ''.join(BAND(a, t, n2 + 1 + i) for i, (a, t) in enumerate(note))
-        S(sid + 'b', title_s + ' (המשך)', head + ' (המשך)', f'<div class="solw two">{s2}{end2}</div>', kick=k, cls='qslide')
+    last = len(bounds) - 2
+    for j in range(last + 1):
+        part, n = _solitems(sol[bounds[j]:bounds[j + 1]])
+        end = (ST(n, f'<b>תשובה:</b> {TX(ans)}', cls='band ans') + ''.join(BAND(a, t, n + 1 + i) for i, (a, t) in enumerate(note))) if j == last else ''
+        t = tls[j]
+        if j == 0 and wide:
+            body = (f'<div class="card qstem wide {stemfs}">{stem_html}</div>' if stem else '') + (f'<div class="card tlw">{t}</div>' if t else '') + f'<div class="solw">{part}{end}</div>'
+        elif j == 0:
+            body = (f'<div class="qg"><div class="qr">' + (f'<div class="card qstem {stemfs}">{stem_html}</div>' if stem else '') + (f'<div class="card tlw">{t}</div>' if t else '') + '</div>'
+                    f'<div class="solw">{part}{end}</div></div>')
+        else:
+            body = (f'<div class="card tlw cont">{t}</div>' if t else '') + f'<div class="solw two">{part}{end}</div>'
+        suf = '' if j == 0 else ' (המשך)'
+        S(sid + ('' if j == 0 else 'bcdefg'[j - 1]), title_s + suf, head + suf, body, kick=k, cls='qslide')
 
 
 PNUM = [0]
@@ -147,26 +192,26 @@ SL.append(dict(id='s-title', title='פתיחה', kind='title', part=None, h='ע�
 S('s-unit1', 'לפני שמתחילים: יחידה 1', 'לפני שמתחילים: יחידה 1',
   '<div class="row eq2">'
   + '<div class="card"><b class="ct">יחידת רקע</b><p class="lg">' + TX('יחידה 1 מציגה את הצורך במימון, את מקומו בניהול המודרני, ואת מטרת העל של הפירמה: השאת ערך לבעלים.') + '</p><p class="lg">' + TX('היחידה איננה כוללת חישובים, ואיננו מקדישים לה זמן במפגש. עברו עליה בלמידה עצמית ברצפי הלמידה שבאתר הקורס, לפני המפגש או אחריו.') + '</p></div>'
-  + '<div class="card"><b class="ct">מכאן מתחילים: יחידה 2</b><p class="lg">' + TX('יחידה 2 עוסקת בעקרונות הבסיסיים ביותר של חישובים פיננסיים, ובהשפעה של ערך הזמן על השווי הכספי.') + '</p><p class="lg">' + TX('כל החישובים מוצגים בנוסחאות מתמטיות. איננו עובדים עם לוחות היוון.') + '</p></div></div>'
-  + BAND('note', 'בכל שאלות יחידה 2, הריבית הנתונה כבר מתאימה לפרק הזמן שבין התזרימים. הפקדות חודשיות מגיעות עם ריבית חודשית, הפקדות שנתיות עם ריבית שנתית. בסוגיית הריבית עצמה (ריבית נקובה, אפקטיבית, ריאלית, המרות) איננו נוגעים עדיין. היא תידון בהמשך הקורס.'),
+  + '<div class="card st" data-n="10"><b class="ct">מכאן מתחילים: יחידה 2</b><p class="lg">' + TX('יחידה 2 עוסקת בעקרונות הבסיסיים ביותר של חישובים פיננסיים, ובהשפעה של ערך הזמן על השווי הכספי.') + '</p><p class="lg">' + TX('כל החישובים מוצגים בנוסחאות מתמטיות. איננו עובדים עם לוחות היוון.') + '</p></div></div>'
+  + BAND('note', 'בכל שאלות יחידה 2, הריבית הנתונה כבר מתאימה לפרק הזמן שבין התזרימים. הפקדות חודשיות מגיעות עם ריבית חודשית, הפקדות שנתיות עם ריבית שנתית. בסוגיית הריבית עצמה (ריבית נקובה, אפקטיבית, ריאלית, המרות) איננו נוגעים עדיין. היא תידון בהמשך הקורס.', 2),
   kick='לפני שמתחילים')
 
-ROUTE = [(1, 'העדפת זמן ושפת העבודה', 'מבוא ליחידה: מה נלמד, העדפת זמן וסימונים', 'כ-25 דקות'),
+ROUTE = [(1, 'ערך הזמן של הכסף ושפת העבודה', 'מבוא ליחידה: ערך הזמן של הכסף וסימונים', 'כ-25 דקות'),
          (2, 'כללים, נוסחאות ותהליך עבודה', 'מבוא ליחידה: חמשת הכללים והמחשות, שמונה נוסחאות, שישה צעדים', 'כ-40 דקות'),
          (3, 'סכום יחיד: ערך עתידי', 'סכום יחיד: ערך עתידי של סכום יחיד', 'כ-20 דקות'),
          (4, 'סדרה: ערך עתידי', 'סדרת סכומים: ערך עתידי של סדרת סכומים', 'כ-45 דקות'),
-         (5, 'סכום יחיד: ערך נוכחי', 'סכום יחיד: ערך נוכחי, בחזרה מן הערך העתידי', 'כ-20 דקות'),
+         (5, 'סכום יחיד: ערך נוכחי', 'סכום יחיד: ערך נוכחי, כפעולה ההפוכה לערך עתידי', 'כ-20 דקות'),
          (6, 'סדרה: ערך נוכחי', 'סדרת סכומים: ערך נוכחי והלוואות', 'כ-40 דקות'),
          (7, 'זרמים אינסופיים', 'יישומי ערך נוכחי: זרם אינסופי, קבוע וצומח', 'כ-25 דקות'),
          (8, 'סיכום ומפת החלטה', 'סיכום היחידה ועשר השגיאות הנפוצות', 'כ-10 דקות'),
          (9, 'תרגול לבית', 'שש שאלות, עם פתרונות מלאים', 'עבודה עצמית'),
          (10, 'נספח: שאלות רב ברירה', 'שתים עשרה שאלות, עם פתרונות מלאים', 'עבודה עצמית')]
 S('s-route', 'מה יש ביחידה 2, ואיך המפגש בנוי', 'מה יש ביחידה 2, ואיך המפגש בנוי',
-  '<p class="lead">' + TX('מבנה המפגש חופף למפת הנושאים של יחידה 2 באתר הקורס.' + (' לחצו על חלק כדי לעבור אליו.' if MODE == 'deck' else '')) + '</p><div class="route r5">'
+  '<p class="lead">' + TX('המפגש מכסה את כל נושאי יחידה 2 שבאתר הקורס, בסדר אחר: תחילה ערך עתידי, של סכום יחיד ושל סדרה, ואחר כך ערך נוכחי.' + (' לחצו על חלק כדי לעבור אליו.' if MODE == 'deck' else '')) + '</p><div class="route r5">'
   + ''.join(rcard(n, t, d, m, f'p-{n}') for n, t, d, m in ROUTE) + '</div>', kick='מסלול המפגש')
 
 # ================================================================ part 1
-opener(1, 'העדפת זמן ושפת העבודה', 'שאלת החלק: מדוע שקל היום איננו שקל בעוד שנה?',
+opener(1, 'ערך הזמן של הכסף ושפת העבודה', 'שאלת החלק: מדוע שקל היום איננו שקל בעוד שנה?',
        ['ערך הזמן של הכסף, קרן וריבית', 'שתי הפעולות היחידות על ציר הזמן', 'שבעת הסימונים של היחידה', 'בדיקת הבנה קצרה'], 25)
 
 S('s-time', 'ערך הזמן של הכסף', 'כסף איננו אדיש לזמן',
@@ -179,9 +224,9 @@ S('s-time', 'ערך הזמן של הכסף', 'כסף איננו אדיש לזמ�
 
 S('s-axis', 'ציר הזמן ונקודת זמן 0', 'ציר הזמן: השפה שבה מציירים כל שאלה',
   '<div class="row eq2 top">'
-  + DEF('ציר זמן', 'קו שעליו מסמנים מתי כל סכום מתרחש. כל שנתות סמוכות מרוחקות זו מזו תקופה אחת.', 'הפקדה עכשיו מסומנת בזמן 0, והפקדה בעוד שנתיים, בתקופות שנתיות, בזמן 2.', trm='timeline')
-  + DEF('תזרים', 'סכום בודד שעובר בנקודת זמן אחת: הפקדה, תקבול או החזר.', '500 ש״ח שמתקבלים בעוד 3 שנים הם תזרים בזמן 3.', trm='flow') + '</div>'
-  + '<div class="card tlw">' + TL([0, 1, 2, 3, 4, 5], flows={0: '500', 3: '200'}, W=1120, fs=21, fh=44) + '</div>',
+  + DEF('ציר זמן', 'קו שעליו מסמנים מתי כל סכום מתרחש. כל שתי שנתות סמוכות מרוחקות זו מזו תקופה אחת.', 'הפקדה עכשיו מסומנת בזמן 0, והפקדה בעוד שנתיים, בתקופות שנתיות, בזמן 2.', trm='timeline')
+  + DEF('תזרים', 'סכום בודד שעובר בנקודת זמן אחת: הפקדה, תקבול או החזר.', '500 ש״ח שמתקבלים בעוד 3 שנים הם תזרים בזמן 3.', 1, trm='flow') + '</div>'
+  + ST(2, TL([0, 1, 2, 3, 4, 5], flows={0: '200', 3: '500'}, W=1120, fs=21, fh=44), cls='card tlw'),
   kick='חלק 1 · הגדרה והדגמה')
 
 S('s-ops', 'שתי הפעולות על ציר הזמן', 'מכאן נגזרות שתי פעולות בלבד',
@@ -189,6 +234,13 @@ S('s-ops', 'שתי הפעולות על ציר הזמן', 'מכאן נגזרות 
   + '<div class="row eq2 top">'
   + DEF('ערך עתידי, FV', 'קיצור של Future Value. שווי כספי מצטבר, קרן בתוספת ריבית, בנקודת זמן עתידית.', '$100 × 1.10 = 110$: הערך העתידי בעוד שנה, בריבית 10%, הוא 110.', 1, trm='fv')
   + DEF('ערך נוכחי, PV', 'קיצור של Present Value. שווי כספי בזמן 0, כלומר היום.', '$\\f{110}{1.10} = 100$: הערך הנוכחי של 110 בעוד שנה, בריבית 10%, הוא 100.', 2, trm='pv') + '</div>',
+  kick='חלק 1 · הגדרה והדגמה')
+
+S('s-disc', 'היוון וחזקה שלילית', 'היוון: חזקה שלילית פירושה חלוקה',
+  '<div class="row eq2 top">'
+  + DEF('היוון', 'משיכה של סכום אחורה על ציר הזמן, כלומר נטרול הריבית. מחלקים ב-1 ועוד הריבית, פעם אחת לכל תקופה.', '110 ש״ח בעוד שנה, בריבית 10%: $\\f{110}{1.10} = 100$ ש״ח היום.', trm='disc')
+  + DEF('חזקה שלילית', 'חזקה שלילית היא חלוקה: $(1 + r)^{-t}$ שווה ל-1 חלקי $(1 + r)^{t}$.', '$(1.10)^{-2} = \\f{1}{(1.10)^{2}} = 0.8264$, ולכן $121 × (1.10)^{-2} = 100$.', 1) + '</div>'
+  + ST(2, TL([0, 1, 2], flows={2: '121'}, marks={0: '100'}, moves=[dict(a=2, b=0, t='× (1.10)^{-2}', s=2)], W=1120, fs=21, fh=40), cls='card tlw'),
   kick='חלק 1 · הגדרה והדגמה')
 
 S('s-sides', 'השקעה והלוואה: אותו חישוב', 'השקעה והלוואה: שני צדדים של אותו מטבע',
@@ -204,13 +256,14 @@ S('s-not1', 'סימונים: PV, FV, PMT', 'שפת העבודה: שלושת הע
       ['<b>PV</b>', 'ערך נוכחי', 'שווי כספי בזמן 0, כלומר היום. ביחידות הלימוד מסומן גם $V_{0}$.', 'מפקידים היום 100: $PV = 100$'],
       ['<b>FV</b>', 'ערך עתידי', 'שווי כספי מצטבר (קרן בתוספת ריבית) בנקודת זמן עתידית. ביחידות הלימוד מסומן גם $V_{t}$.', 'בעוד שנה, בריבית 10%: $FV = 110$'],
       ['<b>PMT</b>', 'תזרים תקופתי', 'קיצור של Payment. הסכום הקבוע החוזר על עצמו בסדרה: הפקדה, תקבול או החזר. ביחידות הלימוד מסומן לעתים $a$.', '100 ש״ח בכל חודש: $PMT = 100$'],
-  ], 'big'), kick='חלק 1 · סימונים')
+  ], 'big', rev=1), kick='חלק 1 · סימונים')
 
 S('s-not2', 'סימונים: r ו-t', 'שפת העבודה: ריבית ומספר תקופות',
   TABLE(['סימון', 'שם', 'משמעות', 'דוגמה'], [
       ['<b>[[r|r]]</b>', 'שיעור ריבית', 'הריבית לתקופה אחת. בסדרה: הריבית לפרק הזמן שבין תשלומים.', 'הפקדות חודשיות, ריבית חודשית: $r = 1%$'],
       ['<b>[[t|t]]</b>', 'מספר תקופות', 'בסכום יחיד: מספר תקופות הריבית. בסדרה: מספר התשלומים.', 'שנתיים של תשלומים חודשיים: $t = 24$'],
-  ], 'big') + BAND('dg', 'בסדרה, $t$ סופר תשלומים. אם יש 24 תשלומים, $t = 24$, גם כשהסדרה נמצאת רחוק על ציר הזמן.', 1), kick='חלק 1 · סימונים')
+      ['<b>n</b>', 'מספר תקופות ההתאמה', 'ההפרש בין נקודת היעד לנקודה שאליה הגיעה הנוסחה.', 'הנוסחה בזמן 7, היעד בזמן 11: $n = 4$'],
+  ], 'big', rev=1) + BAND('dg', 'בסדרה, $t$ סופר תשלומים. אם יש 24 תשלומים, $t = 24$, גם כשהסדרה נמצאת רחוק על ציר הזמן.', 1), kick='חלק 1 · סימונים')
 
 S('s-factors', 'המקדמים הסדרתיים', 'שני מכפילים לסדרות: FVFA ו-PVFA',
   '<div class="row eq2 top">'
@@ -230,15 +283,15 @@ opener(2, 'כללים, נוסחאות ותהליך עבודה', 'שאלת החל
        ['חמשת כללי היסוד, כל אחד עם המחשה מספרית', 'ארגז הנוסחאות: שמונה נוסחאות ומשפט ההלוואה', 'תהליך עבודה של שישה צעדים', 'מפת אבחון מהירה'], 40,
        note='כל שאלה ביחידה 2 נפתרת באמצעות חמשת הכללים הבאים. אין כלל שישי.')
 
+_r1x()
 S('s-r1', 'כלל 1: ריבית דריבית', 'כלל 1: ריבית דריבית היא ברירת המחדל',
   '<div class="row eq2 top">'
   + DEF('ריבית דריבית', 'הריבית בתקופה עוקבת נצברת לא רק על הקרן, אלא גם על הריבית שנצברה בתקופות קודמות. הכפל בשרשרת הוא שיוצר את החזקה.', '100 בריבית 10% לשנתיים: $100 × (1.10)^{2} = 121$.', trm='compound')
   + DEF('ריבית פשוטה', 'ריבית שמחושבת על הקרן בלבד. תחושב רק כאשר נאמר זאת במפורש.', '100 בריבית 10% לשנתיים: $100 + 2 × 10 = 120$.', 1, trm='simple') + '</div>'
-  + ST(2, M('FV = PV × (1 + r)^{t}'), cls='eq big c').replace('class="st eq big c"', 'class="st eq big c" dir="ltr"')
+  + ST(2, EQ('FV = PV × (1 + r)^{t}', 'big c', key=True), cls='fxs')
   + BAND('dg', 'ההפרש בדוגמה, 1 ש״ח, הוא הריבית שנצברה על הריבית. עד שנאמר אחרת: חזקה, ולא כפל.', 3), kick='חלק 2 · כלל 1')
-_r1x()
 
-S('s-r2', 'כלל 2: סר״ת קבוע', 'כלל 2: סדרה מוגדרת רק כאשר מתקיים סר״ת קבוע',
+S('s-r2', 'כלל 2: סכום, ריבית ותדירות קבועים', 'כלל 2: סדרה מוגדרת רק כאשר הסכום, הריבית והתדירות קבועים',
   '<div class="row eq2 top">'
   + DEF('סדרה', 'רצף של תזרימים שווים, במרווחים שווים, באותה ריבית.', '100 ש״ח בתום כל שנה במשך 3 שנים, בריבית 5%.', trm='series')
   + DEF('סר״ת', 'ראשי תיבות של סכום, ריבית, תדירות. שלושתם קבועים: אלה תנאי הכניסה לנוסחת הסדרה.', 'סכום 100, ריבית 5%, אחת לשנה: סר״ת קבוע.', 1, trm='srt') + '</div>'
@@ -246,22 +299,24 @@ S('s-r2', 'כלל 2: סר״ת קבוע', 'כלל 2: סדרה מוגדרת רק �
   + ST(3, TL([0, 1, 2, 3, 4, 5], flows={1: '100', 2: '100', 3: '100', 4: '200', 5: '200'}, brace=[(1, 3, 'סדרה א: סכום 100'), (4, 5, 'סדרה ב: סכום 200')], W=1120, fs=21, fh=40), cls='card tlw'), kick='חלק 2 · כלל 2')
 _r2x()
 
+_r3x()
 S('s-r3', 'כלל 3: לאן מוביל ערך עתידי של סדרה', 'כלל 3: ערך עתידי של סדרה מוביל תמיד למועד התזרים האחרון',
   '<div class="card tlw">' + TL([0, 1, 2, '...', 23, 24, 25], flows={1: 'PMT', 2: 'PMT', 23: 'PMT', 24: 'PMT'}, moves=[dict(a=24, b=24, t='הנוסחה עוצרת כאן', s=1), dict(a=24, b=25, t='התאמה קדימה, אם הפירעון מאוחר יותר', s=2)], W=1120, fs=21, fh=44) + '</div>'
   + '<div class="row eq2 top">'
   + ST(1, '<p>' + TX('הנוסחה איננה יודעת מתי הפירעון. היא עוצרת בהפקדה האחרונה, ולא מטר אחד אחריה.') + '</p>', cls='card lg')
   + DEF('התאמה', 'מכפלה נוספת שמעבירה את תוצאת הנוסחה מהנקודה שאליה הגיעה אל נקודת היעד.', 'שתי הפקדות של 100 בזמנים 1 ו-2, ריבית 10%: הנוסחה נותנת 210 בזמן 2. אם הפירעון בזמן 3: $210 × 1.10 = 231$.', 2, trm='adjust') + '</div>',
   kick='חלק 2 · כלל 3')
-_r3x()
 
+_r4x()
 S('s-r4', 'כלל 4: לאן מוביל ערך נוכחי של סדרה', 'כלל 4: ערך נוכחי של סדרה מוביל תקופה אחת לפני התזרים הראשון',
   '<div class="card tlw">' + TL([0, 1, 2, 3, '...', 8], flows={3: 'PMT', 8: 'PMT'}, moves=[dict(a=3, b=2, t='קפיצה אוטומטית', s=1), dict(a=2, b=0, t='התאמה נוספת עד זמן 0', s=2)], W=1120, fs=21, fh=44) + '</div>'
   + '<div class="row eq2 top">'
   + ST(1, '<p>' + TX('״קפיצה אחת אחורה״, באופן אוטומטי, בלי שנרצה. אם הנקודה שאליה הגענו איננה זמן 0, נדרשת התאמה נוספת.') + '</p>', cls='card lg')
   + DEF('נקודת היעד', 'נקודת הזמן שבה השאלה מבקשת את הערך.', 'שני תקבולים של 100 בזמנים 1 ו-2, ריבית 10%: הנוסחה נותנת 173.55 בזמן 0, וזו נקודת היעד. אין התאמה.', 2, trm='target') + '</div>',
   kick='חלק 2 · כלל 4')
-_r4x()
+_r4y()
 
+_r5x()
 S('s-r5', 'כלל 5: תחילת תקופה', 'כלל 5: תזרימי תחילת תקופה מוזזים אחת אחורה על הציר',
   '<div class="row eq2 top">'
   + '<div class="card tlw"><b class="ct">' + TX('[[endp|תום תקופה]]: הפקדה בתום כל חודש, שנתיים') + '</b>'
@@ -270,9 +325,8 @@ S('s-r5', 'כלל 5: תחילת תקופה', 'כלל 5: תזרימי תחילת 
   + '<div class="card tlw"><b class="ct">' + TX('[[begp|תחילת תקופה]]: הפקדה בתחילת כל חודש, שנתיים') + '</b>'
   + TL([-1, 0, 1, '...', 23, 24], flows={0: 'PMT', 1: 'PMT', 23: 'PMT'}, moves=[dict(a=0, b=-1, t='PVFA מוביל לזמן מינוס 1', s=2), dict(a=23, b=23, t='FVFA מוביל לזמן 23', s=2)], W=560, fs=19, fh=38)
   + '<p class="sp">' + TX('זמנים 0 עד 23.') + '</p></div></div>'
-  + BAND('', 'מספר ההפקדות איננו משתנה, 24 בשני המקרים. רק המיקום זז. וזה קריטי, כי נקודת היעד של הנוסחה נגזרת מן המיקום. בתחילת תקופה, שתי הנוסחאות נדרשות להתאמה של $(1 + r)^{1}$.', 3),
+  + BAND('', 'מספר ההפקדות איננו משתנה, 24 בשני המקרים. רק המיקום זז. וזה קריטי, כי הנקודה שאליה הנוסחה מגיעה נגזרת מן המיקום. בתחילת תקופה, שתי הנוסחאות נדרשות להתאמה של $(1 + r)^{1}$.', 3),
   kick='חלק 2 · כלל 5')
-_r5x()
 
 MCS('s-q2a', 'בדיקת הבנה: הכללים', 'בדיקת הבנה: חמשת הכללים', [
     mc('q2a', 'הפקדה של 100 ש״ח בתחילת כל שנה, במשך 5 שנים. באילו זמנים ממוקמות ההפקדות?', ['1 עד 5', '0 עד 4', '0 עד 5', '1 עד 4'], 1, 'תחילת תקופה מזיזה את הסדרה אחת אחורה. מספר ההפקדות נשאר 5.'),
@@ -283,9 +337,9 @@ MCS('s-q2a', 'בדיקת הבנה: הכללים', 'בדיקת הבנה: חמשת
 S('s-box1', 'ארגז הנוסחאות: סכום יחיד', 'ארגז הנוסחאות: סכום יחיד',
   '<p class="lead">' + TX('שמונה נוסחאות. כל שאלה ביחידה היא צירוף שלהן.') + '</p><div class="fg">'
   + '<div class="card fm"><b>1. ערך עתידי, ריבית קבועה</b><p>' + TX('במילים: הערך הנוכחי, כפול 1 ועוד הריבית, בחזקת מספר התקופות.') + '</p>' + EQ('FV = PV × (1 + r)^{t}') + '<div class="demo">' + TX('$100 × (1.10)^{2} = 121$') + '</div></div>'
-  + '<div class="card fm"><b>2. ערך עתידי, ריבית משתנה מתקופה לתקופה</b><p>' + TX('במילים: כל ריבית מקבלת כופל משלה, בחזקת מספר התקופות שלה.') + '</p>' + EQ('FV = PV × (1 + r_{1})^{t_{1}} × (1 + r_{2})^{t_{2}} × ···') + '<div class="demo">' + TX('$100 × (1.10)^{1} × (1.20)^{1} = 132$') + '</div></div>'
-  + '<div class="card fm"><b>3. ערך נוכחי, ריבית קבועה</b><p>' + TX('במילים: הערך העתידי, חלקי 1 ועוד הריבית בחזקת מספר התקופות.') + '</p><div class="eq" dir="ltr">' + M('PV = \\f{FV}{(1 + r)^{t}}') + '&emsp;' + M('PV = FV × (1 + r)^{-t}') + '</div><div class="demo">' + TX('$121 × (1.10)^{-2} = 100$') + '</div></div>'
-  + '<div class="card fm"><b>4. ערך נוכחי, שערי היוון משתנים</b><p>' + TX('במילים: אותה שרשרת, עם חזקות שליליות.') + '</p>' + EQ('PV = FV × (1 + r_{1})^{-t_{1}} × (1 + r_{2})^{-t_{2}} × ···') + '<div class="demo">' + TX('$132 × (1.10)^{-1} × (1.20)^{-1} = 100$') + '</div></div></div>',
+  + '<div class="card fm st" data-n="10"><b>2. ערך עתידי, ריבית משתנה מתקופה לתקופה</b><p>' + TX('במילים: הערך הנוכחי, כפול כופל נפרד לכל ריבית: 1 ועוד אותה ריבית, בחזקת מספר התקופות שבהן היא תקפה.') + '</p>' + EQ('FV = PV × (1 + r_{1})^{t_{1}} × (1 + r_{2})^{t_{2}} × ···') + '<div class="demo">' + TX('$100 × (1.10)^{1} × (1.20)^{1} = 132$') + '</div></div>'
+  + '<div class="card fm st" data-n="20"><b>3. ערך נוכחי, ריבית קבועה</b><p>' + TX('במילים: הערך העתידי, חלקי 1 ועוד הריבית בחזקת מספר התקופות.') + '</p><div class="eq" dir="ltr">' + M('PV = \\f{FV}{(1 + r)^{t}}') + '&emsp;' + M('PV = FV × (1 + r)^{-t}') + '</div><div class="demo">' + TX('$121 × (1.10)^{-2} = 100$') + '</div></div>'
+  + '<div class="card fm st" data-n="30"><b>4. ערך נוכחי, שערי היוון משתנים</b><p>' + TX('במילים: הערך העתידי, כפול כופל נפרד לכל ריבית, בחזקת מינוס מספר התקופות שלה.') + '</p>' + EQ('PV = FV × (1 + r_{1})^{-t_{1}} × (1 + r_{2})^{-t_{2}} × ···') + '<div class="demo">' + TX('$132 × (1.10)^{-1} × (1.20)^{-1} = 100$') + '</div></div></div>' + legend('PV FV r_{1} r t'),
   kick='חלק 2 · נוסחאות 1 עד 4')
 
 S('s-box1b', 'למה חזקה שלילית', 'ערך נוכחי: למה אני מעדיף חזקה שלילית',
@@ -299,31 +353,31 @@ S('s-box1b', 'למה חזקה שלילית', 'ערך נוכחי: למה אני �
 S('s-box2', 'ארגז הנוסחאות: סדרה קבועה', 'ארגז הנוסחאות: סדרת סכומים קבועה',
   '<div class="col">'
   + '<div class="card fm"><b>5. ערך עתידי של סדרה קבועה</b><p>' + TX('במילים: התזרים התקופתי, כפול המקדם: 1 ועוד הריבית בחזקת מספר התשלומים, פחות 1, והכול חלקי הריבית.') + '</p><div class="eq" dir="ltr">' + M('FV_{Series} = PMT × FVFA(r,t)') + '&emsp;&emsp;' + M('FVFA(r,t) = \\f{(1 + r)^{t} - 1}{r}') + '</div><div class="demo">' + TX('$100 × FVFA(10%,2) = 100 × 2.1 = 210$') + '</div></div>'
-  + '<div class="card fm"><b>6. ערך נוכחי של סדרה קבועה (סופית)</b><p>' + TX('במילים: התזרים התקופתי, כפול המקדם: 1 פחות 1 ועוד הריבית בחזקת מינוס מספר התשלומים, והכול חלקי הריבית.') + '</p><div class="eq" dir="ltr">' + M('PV_{Series} = PMT × PVFA(r,t)') + '&emsp;&emsp;' + M('PVFA(r,t) = \\f{1 - (1 + r)^{-t}}{r}') + '</div><div class="demo">' + TX('$100 × PVFA(10%,2) = 100 × 1.7355 = 173.55$') + '</div></div></div>',
+  + '<div class="card fm st" data-n="10"><b>6. ערך נוכחי של סדרה קבועה (סופית)</b><p>' + TX('במילים: התזרים התקופתי, כפול המקדם: 1 פחות 1 ועוד הריבית בחזקת מינוס מספר התשלומים, והכול חלקי הריבית.') + '</p><div class="eq" dir="ltr">' + M('PV_{Series} = PMT × PVFA(r,t)') + '&emsp;&emsp;' + M('PVFA(r,t) = \\f{1 - (1 + r)^{-t}}{r}') + '</div><div class="demo">' + TX('$100 × PVFA(10%,2) = 100 × 1.7355 = 173.55$') + '</div></div></div>' + legend('PMT FVFA PVFA r t'),
   kick='חלק 2 · נוסחאות 5 ו-6')
 
 S('s-box3', 'ארגז הנוסחאות: זרם אינסופי', 'ארגז הנוסחאות: זרם כספים אינסופי',
   '<div class="row eq2 top">'
   + '<div class="card fm"><b>7. ערך נוכחי של זרם כספים אינסופי</b><p>' + TX('[[perp|זרם אינסופי]], או צמיתות: תזרים קבוע שנמשך לנצח. במילים: התזרים, חלקי הריבית.') + '</p><div class="eq" dir="ltr">' + M('PVFA(r,∞) = \\f{1}{r}') + '&emsp;' + M('PV_{∞} = PMT × \\f{1}{r}') + '</div><div class="demo">' + TX('100 ש״ח בכל שנה, לנצח, בריבית 10%: $\\f{100}{0.10} = 1,000$') + '</div></div>'
-  + '<div class="card fm"><b>8. ערך נוכחי של סדרה צומחת אינסופית</b><p>' + TX('[[gperp|צמיתות צומחת]]: כל תזרים גדול מקודמו בשיעור קבוע, [[g|g]]. במילים: התזרים הראשון, חלקי הריבית פחות שיעור הצמיחה.') + '</p><div class="eq" dir="ltr">' + M('PV_{∞,g} = \\f{PMT_{1}}{r - g}') + '&emsp;' + M('(r > g)') + '</div><div class="demo">' + TX('תזרים ראשון 100, $r = 10%$, $g = 5%$: $\\f{100}{0.05} = 2,000$') + '</div></div></div>'
-  + BAND('note', 'ערך עתידי של סדרה אינסופית איננו קיים. הוא שואף לאינסוף. אינסופיות שייכת לערך נוכחי בלבד.', 1),
+  + '<div class="card fm st" data-n="10"><b>8. ערך נוכחי של סדרה צומחת אינסופית</b><p>' + TX('[[gperp|צמיתות צומחת]]: כל תזרים גדול מקודמו בשיעור קבוע, [[g|g]]. במילים: התזרים הראשון, חלקי הריבית פחות שיעור הצמיחה.') + '</p><div class="eq" dir="ltr">' + M('PV_{∞,g} = \\f{PMT_{1}}{r - g}') + '&emsp;' + M('(r > g)') + '</div><div class="demo">' + TX('תזרים ראשון 100, $r = 10%$, $g = 5%$: $\\f{100}{0.05} = 2,000$') + '</div></div></div>'
+  + legend('PMT PMT_{1} r g') + BAND('note', 'ערך עתידי של סדרה אינסופית איננו קיים. הוא שואף לאינסוף. אינסופיות שייכת לערך נוכחי בלבד.', 2),
   kick='חלק 2 · נוסחאות 7 ו-8')
 
 S('s-loan', 'משפט ההלוואה', 'משפט ההלוואה',
   '<div class="row eq2 top">'
   + DEF('משפט ההלוואה', 'סכום הלוואה הוא תמיד הערך הנוכחי של החזריה.', 'שני החזרים של 100 בזמנים 1 ו-2, ריבית 10%: סכום ההלוואה הוא $100 × 1.7355 = 173.55$.', trm='loan')
   + DEF('יתרת הלוואה', 'בכל מועד, היתרה היא הערך הנוכחי של יתרת ההחזרים באותו מועד.', 'אחרי ההחזר הראשון נותר החזר אחד: $\\f{100}{1.10} = 90.91$. בדיקה: $173.55 × 1.10 - 100 = 90.91$.', 1, trm='balance') + '</div>'
-  + ST(2, M('LOAN = PV(payments)'), cls='eq big c').replace('class="st eq big c"', 'class="st eq big c" dir="ltr"'),
+  + ST(2, EQ('LOAN = PV(payments)', 'big c', key=True), cls='fxs'),
   kick='חלק 2 · משפט')
 
 S('s-steps', 'תהליך העבודה: שישה צעדים', 'תהליך העבודה: שישה צעדים, תמיד באותו סדר',
   '<ol class="steps">' + ''.join(ST(i + 1, f'<span><b>{a}</b> {TX(b)}</span>', 'li') for i, (a, b) in enumerate([
-      ('קרא את הנדרש.', 'מה מבקשים: ערך היום, ערך בעתיד, או רכיב אחר בתוך המשוואה.'),
-      ('סווג את התזרימים:', 'סכום יחיד, סדרה, או שילוב. אם שילוב, טפל בכל רכיב בנפרד וחבר בסוף.'),
-      ('בדוק סר״ת.', 'שינוי בסכום, בריבית או בתדירות מחייב פיצול לתתי סדרות.'),
-      ('צייר את ציר הזמן.', 'סמן את זמן 0, את מיקומי התזרימים, ואת נקודת היעד. תזרימי תחילת תקופה, הזז אחת אחורה.'),
-      ('בנה את המשוואה.', 'הפעל את הנוסחה, בדוק לאיזו נקודת זמן היא הובילה, והוסף התאמה אם זו איננה נקודת היעד.'),
-      ('הצב וחשב.', 'אם הנעלם איננו הערך אלא רכיב פנימי, בודד אותו.')])) + '</ol>', kick='חלק 2 · תהליך העבודה')
+      ('קראו את הנדרש.', 'מה מבקשים: ערך היום, ערך בעתיד, או רכיב אחר בתוך המשוואה.'),
+      ('סווגו את התזרימים:', 'סכום יחיד, סדרה, או שילוב. אם שילוב, טפלו בכל רכיב בנפרד וחברו בסוף.'),
+      ('בדקו סר״ת.', 'שינוי בסכום, בריבית או בתדירות מחייב פיצול לתתי סדרות.'),
+      ('ציירו את ציר הזמן.', 'סמנו את זמן 0, את מיקומי התזרימים, ואת נקודת היעד. תזרימי תחילת תקופה, הזיזו אחת אחורה.'),
+      ('בנו את המשוואה.', 'הפעילו את הנוסחה, בדקו לאיזו נקודת זמן היא הובילה, והוסיפו התאמה אם זו איננה נקודת היעד.'),
+      ('הציבו וחשבו.', 'אם הנעלם איננו הערך אלא רכיב פנימי, בודדו אותו.')])) + '</ol>', kick='חלק 2 · תהליך העבודה')
 
 S('s-map', 'מפת אבחון מהירה', 'מפת אבחון מהירה',
   TABLE(['מה מבקשים בשאלה', 'לאן זה מוביל'], [
@@ -331,10 +385,10 @@ S('s-map', 'מפת אבחון מהירה', 'מפת אבחון מהירה',
       ['״כמה מוכן לשלם היום״, ״מהו השווי היום״, ״מהו סכום ההלוואה״', '<b>ערך נוכחי</b>'],
       ['״מהו סכום ההפקדה או ההחזר״, כאשר הערך נתון', '<b>חילוץ PMT</b>'],
       ['״כמה להפקיד היום״, כאשר יעד עתידי נתון', '<b>חילוץ PV</b>'],
-  ], 'big'), kick='חלק 2 · תהליך העבודה')
+  ], 'big', rev=1), kick='חלק 2 · תהליך העבודה')
 
 MCS('s-q2b', 'בדיקת הבנה: אבחון', 'בדיקת הבנה: אבחון השאלה', [
     mc('q2d', '״כמה תסכימו לשלם היום בעד נכס שיניב 1,000 ש״ח בכל שנה, לנצח?״ לאן זה מוביל?', ['ערך עתידי של סדרה', 'ערך נוכחי של זרם אינסופי', 'חילוץ PMT', 'ערך נוכחי של סכום יחיד'], 1, 'מבקשים שווי היום, והתזרים חוזר לנצח: נוסחה 7.'),
     mc('q2e', '״לוויתם 100,000 ש״ח. מהו ההחזר החודשי?״ לאן זה מוביל?', ['ערך עתידי', 'חילוץ PV', 'חילוץ PMT מתוך ערך נוכחי', 'ריבית פשוטה'], 2, 'משפט ההלוואה: ההלוואה היא הערך הנוכחי של החזריה, והנעלם הוא ההחזר.'),
-    mc('q2f', '״בעוד 4 שנים דרושים לכם 50,000 ש״ח. כמה להפקיד היום?״ לאן זה מוביל?', ['חילוץ PV', 'חילוץ PMT', 'ערך עתידי של סדרה', 'אי אפשר לחשב בלי ריבית משתנה'], 0, 'יעד עתידי נתון, והנעלם הוא הסכום היום.'),
+    mc('q2f', '״בעוד 4 שנים דרושים לכם 50,000 ש״ח. כמה להפקיד היום?״ לאן זה מוביל?', ['חילוץ PV', 'חילוץ PMT', 'ערך עתידי של סדרה', 'ערך נוכחי של סדרה'], 0, 'יעד עתידי נתון, והנעלם הוא הסכום היום.'),
 ])

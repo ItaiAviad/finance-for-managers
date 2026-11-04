@@ -192,3 +192,24 @@ svg .st:not(.show){opacity:0}
 .mcrow.n4{grid-template-columns:repeat(2,minmax(0,1fr))}
 .mcrow.n4 .mc .o{display:inline-block;width:auto;margin-inline-end:6px}
 .ytbl td,.ytbl th{text-align:center}
+/* highlighted general formulas, their legend, and the timeline key */
+.fxs,.fxw{display:block}
+.eq.fx{width:fit-content;max-width:100%;margin-left:auto;background:#fff3ec;border:2px solid #ffc4b0;border-radius:12px;padding:2px 14px}
+.eq.fx.c{margin-right:auto}
+.cout .eq.fx{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.3)}
+.lgd{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:16.5px;line-height:1.35;color:var(--ink2);margin:3px 0 7px}
+.lgd b{color:var(--coral)}
+.lgd i{font-style:normal;font-weight:800;color:var(--navy2);unicode-bidi:isolate;margin-inline-end:4px}
+.tlk{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 16px;font-size:16.5px;color:var(--mut);margin-top:2px}
+.tlk i{display:inline-block;vertical-align:middle;margin-inline-end:6px}
+.tlk .kf{width:4px;height:16px;background:#ff6a4d;border-radius:2px}
+.tlk .kv{width:24px;border-top:3px dashed #0f9d90}
+.tlk .kb{width:24px;border-top:3px dashed #6d4df2}
+.tlk .kd{width:11px;height:11px;border-radius:50%;background:#0f9d90}
+/* step rings: the time a step talks about, circled on the timeline; earlier rings fade */
+.tl .rg circle{transform-box:fill-box;transform-origin:center}
+@keyframes tlpop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.15)}100%{transform:none;opacity:1}}
+.slide.on .tl .rg.show circle{animation:tlpop .45s ease both}
+svg .st.rg.past{opacity:.22}
+.tlw.cont{margin-bottom:8px;padding:4px 12px}
+@media print{.tl .rg{display:none}}
