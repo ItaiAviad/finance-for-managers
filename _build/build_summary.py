@@ -133,9 +133,9 @@ for n in range(1, TOTAL_PARTS + 1):
 gl = ''.join(f'<div class="gl"><div class="th">{g["h"]}<small>{g["en"]}</small></div><p><b>בפשטות:</b> {g["p"]}</p><p><b>בלשון מקצועית:</b> {g["f"]}</p><p><b>דוגמה:</b> {g["ex"]}</p><p><b>שימו לב:</b> {g["tr"]}</p></div>' for g in G.values())
 body += f'<section class="part"><h1>מילון מושגים</h1><div class="glc">{gl}</div></section>'
 body += f'<section class="part"><h1>במפגש הבא: {LESSON["end_h"]}</h1><p>' + TX(LESSON['end_p']) + '</p></section>'
-cover = (f'<div class="cover"><div class="c-top">{COURSE} · קורס 13005 · מפגש {LESSON["n"]}</div><div class="c-title">{LESSON["title"]}</div>'
+cover = (f'<div class="cover"><div class="c-top">{COURSE} · קורס 13005 · מפגש {LESSON["n"]}{" · טיוטה" if LESSON.get("draft") else ""}</div><div class="c-title">{LESSON["title"]}</div>'
          f'<div class="c-sub">{LESSON["cover_sub"]}</div><div class="c-line"></div>'
-         '<div class="c-meta">' + TX(LESSON['cover_meta']) + '<br>סמסטר <span dir="ltr">2026</span>ג</div>'
+         '<div class="c-meta">' + (TX('טיוטה: התוכן עשוי להשתנות לפני המפגש.') + '<br>' if LESSON.get('draft') else '') + TX(LESSON['cover_meta']) + '<br>סמסטר <span dir="ltr">2026</span>ג</div>'
          '<div class="c-author"><div class="c-name">ד״ר שי צבאן</div><div class="c-mail" dir="ltr">Shay.tsaban@gmail.com</div></div></div>')
 toc = '<div class="toc"><h1>תוכן העניינים</h1><ol>' + ''.join(f'<li>{parts[n][0]["h"]}</li>' for n in range(1, TOTAL_PARTS + 1)) + '</ol></div>'
 page = f'<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>{COURSE} | שיעור {LESSON["n"]} | סיכום</title><style>{CSS}</style></head><body>{cover}{toc}{body}</body></html>'
