@@ -1,0 +1,25 @@
+
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync lecturer's repository
+        run: |
+          git remote add upstream https://github.com/shaytsaban/finance-for-managers.git
+          git fetch upstream main
+          git merge --ff-only upstream/main
+          git push
