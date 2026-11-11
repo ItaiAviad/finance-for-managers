@@ -21,5 +21,7 @@ jobs:
         run: |
           git remote add upstream https://github.com/shaytsaban/finance-for-managers.git
           git fetch upstream main
-          git merge --ff-only upstream/main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-edit upstream/main
           git push
