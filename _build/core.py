@@ -60,18 +60,116 @@ def calc(*args, **kw):
     """Calculators were removed at the lecturer's request (2026-11-04): the course solves everything by the formulas."""
     return
 
+NOTE_RE = re.compile(r'⟦([^⟧]*)⟧')
+NUM_RE = r'[−-]?[\d,]+(?:\.\d+)?%?'
+
+
+def _split_eq(e):
+    """Split a display equation at its top-level relation signs: [(sign, text)], the first sign empty."""
+    parts, depth, cur, sign = [], 0, '', ''
+    i = 0
+    e = e.strip()
+    if e[:1] in '=≈' and e[1:2] == ' ':        # a continuation line: it opens with its relation sign
+        parts.append(('', '')); sign = e[0]; i = 2
+    while i < len(e):
+        c = e[i]
+        if c == '{': depth += 1
+        elif c == '}': depth -= 1
+        if depth == 0 and c in '=≈' and e[i - 1:i] == ' ' and e[i + 1:i + 2] == ' ':
+            parts.append((sign, cur.strip())); cur, sign = '', c; i += 1; continue
+        cur += c; i += 1
+    parts.append((sign, cur.strip()))
+    return parts
+
+
+def _time_of(lhs):
+    m = re.findall(r'_\{([^}]*)\}', lhs)
+    if not m: return ''
+    t = m[-1].split(',')[-1].strip()
+    if re.fullmatch(r'-?\d+', t):
+        return 'בזמן מינוס ' + t[1:] if t.startswith('-') else 'בזמן ' + t
+    return ''
+
+
+def _auto_note(body, k, n, lhs):
+    """A short note under one piece of an equation: what this piece is."""
+    b = body.strip()
+    if k == 0 and lhs:
+        if re.fullmatch(NUM_RE, lhs.replace(' ', '')):
+            return 'המשוואה'
+        if re.fullmatch(r'\\f\{' + NUM_RE + r'\}\{' + NUM_RE + r'( × ' + NUM_RE + r')?\}', b):
+            return 'מחלקים'
+        return 'מציבים את הנתונים' if re.search(r'\d', b) else ''
+    if k == n - 1 and re.fullmatch(NUM_RE, b.replace(' ', '')):
+        t = _time_of(lhs)
+        return 'התוצאה' + (', ' + t if t else '')
+    if re.search(r'\d\.\d{5,}', b) and re.fullmatch(r'[^+]*', b):
+        return 'המקדם כמספר'
+    if re.fullmatch(NUM_RE + r'( [×÷] ' + NUM_RE + r')+', b):
+        return 'מכפילים'
+    if re.fullmatch(NUM_RE + r'( [+−-] ' + NUM_RE + r')+', b):
+        return 'כל רכיב בנפרד'
+    if '^' in b:
+        return 'מחשבים את החזקה'
+    if '\\f' in b:
+        return 'מחשבים את השבר'
+    return ''
+
+
+def eq_pieces(e, prev=''):
+    """The pieces of a display equation, each with its note: [(math, note)]. A note can be forced with ⟦...⟧ at the piece's end."""
+    parts = _split_eq(e)
+    if len(parts) == 1:
+        t = parts[0][1]
+        m = NOTE_RE.search(t)
+        return [(NOTE_RE.sub('', t).strip(), m.group(1) if m else '')]
+    lhs = parts[0][1]
+    if lhs == '':
+        segs = [(f'{sg} {t}', t) for sg, t in parts[1:]]
+        lhs = prev
+    else:
+        segs = [(f'{lhs} {parts[1][0]} {parts[1][1]}', parts[1][1])] + [(f'{sg} {t}', t) for sg, t in parts[2:]]
+    out = []
+    for k, (seg, body) in enumerate(segs):
+        m = NOTE_RE.search(seg)
+        note = m.group(1) if m else _auto_note(NOTE_RE.sub('', body), k if parts[0][1] else k + 1, len(segs) + (0 if parts[0][1] else 1), lhs)
+        out.append((NOTE_RE.sub('', seg).strip(), note))
+    return out
+
+
+def seg_count(it):
+    """How many clicks a solution item takes: one for prose and general formulas, one per piece for a worked equation."""
+    if it.startswith('=') and not it.startswith('=!') and not is_formula(it[1:]):
+        return len(eq_pieces(it[1:]))
+    if it.startswith('=!'):
+        return len(eq_pieces(it[2:]))
+    return 1
+
+
+def _seq(e, n, cls='eq', prev=''):
+    """A worked equation built piece by piece: each piece appears on its own click, with a short note under it."""
+    html = ''
+    for k, (m, note) in enumerate(eq_pieces(e, prev)):
+        nt = f'<span class="nt">{TX(note)}</span>' if note else ''
+        html += f'<span class="sg st" data-n="{(n + k) * 10}"><span class="sm">{M(m)}</span>{nt}</span>'
+    return f'<div class="{cls} seq" dir="ltr">{html}</div>'
+
+
 def _solitems(items, start=1):
-    out, n = [], start
+    out, n, prev = [], start, ''
     for it in items:
+        if it.startswith('='):
+            p0 = _split_eq(it[2:] if it.startswith('=!') else it[1:])[0][1]
+            if p0 and not is_formula(it[1:]): prev = p0
         if it.startswith('=!'):
-            out.append(ST(n, M(it[2:]), cls='eq fit').replace('class="st eq fit"', 'class="st eq fit" dir="ltr"'))
+            out.append(_seq(it[2:], n, 'eq fit', prev))
         elif it.startswith('=') and is_formula(it[1:]):
             out.append(ST(n, EQ(it[1:], key=True), cls='fxs'))
         elif it.startswith('='):
-            out.append(ST(n, M(it[1:]), cls='eq').replace('class="st eq"', 'class="st eq" dir="ltr"'))
+            out.append(_seq(it[1:], n, 'eq', prev))
         else:
             out.append(ST(n, TX(it), 'p', 'sp'))
-        n += 1
+        n += seg_count(it)
     return ''.join(out), n
 
 
@@ -116,6 +214,9 @@ def _sync(sid, sol, tl, cuts):
         mv = [dict(m, s=0 if m['s'] <= lo and j else (m['s'] - lo if m['s'] else 0)) for m in moves if m['s'] <= hi]
         if j == 0: mv = [dict(m, s=m['s']) for m in moves if m['s'] <= hi]
         rg = [dict(r, s=r['s'] - lo) for r in rings if lo < r['s'] <= hi]
+        cum = lambda r: sum(seg_count(x) for x in sol2[lo:lo + r]) if r > 0 else 0   # item number -> the click that completes it
+        mv = [dict(m, s=cum(m['s']) if m['s'] else 0) for m in mv]
+        rg = [dict(r, s=cum(r['s'])) for r in rg]
         if j == 0:
             out.append(tl.redo(moves=mv, rings=rg))
         elif rg or any(m['s'] for m in mv):     # a continuation slide repeats the timeline only when it marks something new on it
@@ -177,3 +278,7 @@ def CAP(t):
     return f'<p class="cap">{TX(t)}</p>'
 
 
+
+
+exec(R('anim.py'))
+exec(R('memes.py'))

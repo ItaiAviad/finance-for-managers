@@ -31,7 +31,8 @@ def render(s, total):
                 f'<div class="kick" style="color:#ffb199">סוף מפגש {LESSON["n"]}</div>'
                 f'<h1 style="font-size:60px">במפגש הבא: <span style="color:#7fe3d6">{LESSON["end_h"]}</span></h1>'
                 '<p class="sub" style="font-size:25px;margin-top:20px;color:#c8d4f2;max-width:940px">' + TX(LESSON['end_p']) + '</p>'
-                '<p class="sub" style="font-size:22px;margin-top:26px;color:#c8d4f2">שאלות ותיקונים: <span dir="ltr">Shay.tsaban@gmail.com</span></p></div></section>')
+                '<p class="sub" style="font-size:22px;margin-top:22px;color:#ffd37a;font-weight:700">' + TX('מה שלא הספקנו במפגש נשאר ללימוד עצמי. אני זמין לכל שאלה.') + '</p>'
+                '<p class="sub" style="font-size:22px;margin-top:14px;color:#c8d4f2">שאלות ותיקונים: <span dir="ltr">Shay.tsaban@gmail.com</span></p></div></section>')
     if k == 'opener':
         n = s['part']
         home = n >= LESSON['home_from']

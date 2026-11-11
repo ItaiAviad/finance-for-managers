@@ -2,7 +2,7 @@
 # Executed after core.py. Every animated piece is a reveal step (.st with data-n), so a click shows it and the CSS animates it.
 
 
-def BARS(groups, W=1120, H=300, vmax=None, vmin=0, hline=None, title=None):
+def BARS(groups, W=1120, H=300, vmax=None, vmin=0, hline=None, title=None, hside='left'):
     """groups: list of dicts: lab (x label), segs [(value, color, text inside or '')], top (label above), n (reveal step, 0 = at once).
     Stacked segments grow bottom up, one after the other. hline: (value, label, step) dashed reference line."""
     vals = [sum(v for v, _, _ in g['segs']) for g in groups]
@@ -36,7 +36,7 @@ def BARS(groups, W=1120, H=300, vmax=None, vmin=0, hline=None, title=None):
         v, lab, n = hline
         y = base - sy(v)
         out.append(f'<g class="st" data-n="{n * 10}"><line class="hl" x1="{left}" y1="{y:.1f}" x2="{right}" y2="{y:.1f}" stroke="#ff6a4d" stroke-width="2.5" stroke-dasharray="8 6"/>'
-                   f'<text x="{left + 4}" y="{y - 8:.1f}" text-anchor="end" font-size="16" font-weight="800" fill="#c4421f" direction="rtl">{lab}</text></g>')
+                   + (f'<text x="{left + 4}" y="{y - 8:.1f}" text-anchor="end" font-size="16" font-weight="800" fill="#c4421f" direction="rtl">{lab}</text></g>' if hside == 'left' else f'<text x="{right - 4}" y="{y - 8:.1f}" text-anchor="start" font-size="16" font-weight="800" fill="#c4421f" direction="rtl">{lab}</text></g>'))
     out.append('</svg>')
     return ''.join(out)
 

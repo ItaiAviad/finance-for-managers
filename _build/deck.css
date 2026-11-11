@@ -248,3 +248,24 @@ svg .st.rg.past{opacity:.22}
 .steps.sumup li{font-size:24px}
 
 .route.r6{grid-template-columns:repeat(6,1fr)}.route.r6 .rcard{min-height:0;padding:10px 12px}.route.r6 .rcard b{font-size:19px}.route.r6 .rcard span{font-size:17px}.route.r6 .rcard .n{font-size:30px}
+
+/* worked equations built piece by piece, each piece with a short note under it */
+.eq.seq{display:flex;justify-content:center;align-items:flex-start;gap:3px;flex-wrap:nowrap}
+.sg{display:inline-flex;flex-direction:column;align-items:center}
+.sg .sm{white-space:nowrap}
+.sg{min-width:104px}.sg .nt{display:block;width:0;min-width:100%;white-space:normal;font-size:17px;color:#0b6e65;font-weight:700;direction:rtl;text-align:center;line-height:1.2;margin-top:3px;border-top:2px solid #7fe3d6;padding-top:2px;font-family:inherit}
+.slide.on .sg.st.show .sm{animation:sgpop .45s ease both}
+@keyframes sgpop{0%{background:#fff3c4;border-radius:8px}100%{background:transparent}}
+.solw.two .sg .nt,.solw .sg .nt{font-size:17px}
+
+/* memes: original cartoons, two panels, a punchline */
+.meme{background:#16213a;border-radius:18px;padding:12px 14px 14px;color:#fff;box-shadow:0 8px 24px rgba(15,27,51,.25)}
+.meme .mt{font-size:24px;font-weight:800;text-align:center;margin-bottom:10px;color:#ffd37a}
+.meme .mps{display:flex;gap:14px}
+.meme .mp{flex:1 1 0;background:#fff;border-radius:12px;padding:10px 10px 12px;display:flex;flex-direction:column;align-items:center;min-width:0}
+.meme .mart svg{width:96px;height:96px;direction:ltr}
+.meme .mcap{color:#16213a;font-size:19px;font-weight:800;text-align:center;line-height:1.3;margin-top:6px}
+.meme.big{max-width:900px;margin:6px auto 0}.meme.big .mart svg{width:210px;height:210px}.meme.big .mcap{font-size:24px}
+.slide.on .meme .mp{animation:mpop .55s both}.slide.on .meme .mp+.mp{animation-delay:.45s}
+@keyframes mpop{from{opacity:0;transform:scale(.85) rotate(-2deg)}to{opacity:1;transform:none}}
+.slide.memeslide .band{max-width:900px;margin:12px auto 0;font-size:24px}

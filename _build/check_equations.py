@@ -40,6 +40,7 @@ def expr(n):
     if 'frac' in n.cls:
         parts = [k for k in n.kids if not isinstance(k, str)]
         return '((' + expr(parts[0]) + ')/(' + expr(parts[1]) + '))'
+    if 'nt' in n.cls: return ''
     if 'mh' in n.cls: return '§'
     inner = ''.join(expr(k) for k in n.kids)
     if n.tag == 'sup': return '**(' + inner + ')'
