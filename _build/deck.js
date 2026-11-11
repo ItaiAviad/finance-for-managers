@@ -56,6 +56,6 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-t]');if(t&
  if(e.target.closest('#stage')&&!e.target.closest('button,a,input,select,label,.mc,.calc,.term')&&!document.getSelection().toString())next();});
 
 /* ---------- footers and boot ---------- */
-slides.forEach((s,i)=>{if(s.id==='s-title'||s.id==='s-end'||s.classList.contains('pd'))return;const f=document.createElement('div');f.className='ft';f.innerHTML='<span>'+COURSE+' · שיעור 1</span><span><b>ד״ר שי צבאן</b> · <span class="n">'+(i+1)+'</span></span>';s.appendChild(f);});
+slides.forEach((s,i)=>{if(s.id==='s-title'||s.id==='s-end'||s.classList.contains('pd'))return;const f=document.createElement('div');f.className='ft';f.innerHTML='<span>'+COURSE+' · שיעור '+LESSONN+'</span><span><b>ד״ר שי צבאן</b> · <span class="n">'+(i+1)+'</span></span>';s.appendChild(f);});
 (function(){const h=location.hash.slice(1);const hi=slides.findIndex(s=>s.id===h);show(hi>=0?hi:0);})();
 window.__deck={show,next,prev,go,slides,groups,pending,setAll,openTerm,closeOverlays,cur:()=>cur};

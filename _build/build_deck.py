@@ -31,7 +31,8 @@ def render(s, total):
                 f'<div class="kick" style="color:#ffb199">סוף מפגש {LESSON["n"]}</div>'
                 f'<h1 style="font-size:60px">במפגש הבא: <span style="color:#7fe3d6">{LESSON["end_h"]}</span></h1>'
                 '<p class="sub" style="font-size:25px;margin-top:20px;color:#c8d4f2;max-width:940px">' + TX(LESSON['end_p']) + '</p>'
-                '<p class="sub" style="font-size:22px;margin-top:26px;color:#c8d4f2">שאלות ותיקונים: <span dir="ltr">Shay.tsaban@gmail.com</span></p></div></section>')
+                '<p class="sub" style="font-size:22px;margin-top:22px;color:#ffd37a;font-weight:700">' + TX('מה שלא הספקנו במפגש נשאר ללימוד עצמי. אני זמין לכל שאלה.') + '</p>'
+                '<p class="sub" style="font-size:22px;margin-top:14px;color:#c8d4f2">שאלות ותיקונים: <span dir="ltr">Shay.tsaban@gmail.com</span></p></div></section>')
     if k == 'opener':
         n = s['part']
         home = n >= LESSON['home_from']
@@ -51,7 +52,7 @@ fonts = R('shell/fonts.css')
 base = R('shell/base.css')
 tail = R('shell/tail.html')
 gj = json.dumps(G, ensure_ascii=False)
-js = f'const COURSE={json.dumps(COURSE, ensure_ascii=False)};\nconst G={gj};\n' + R('deck.js')
+js = f'const COURSE={json.dumps(COURSE, ensure_ascii=False)};\nconst LESSONN={LESSON["n"]};\nconst G={gj};\n' + R('deck.js')
 title = f'{COURSE} | שיעור {LESSON["n"]} | {LESSON["title"]}' + (' | טיוטה' if LESSON.get('draft') else '')
 html = (f'<!doctype html>\n<html lang="he" dir="rtl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>{title}</title>\n<style>\n'
         + fonts + base + R('deck.css') + '</style>\n</head>\n<body>\n<div class="stage" id="stage">\n' + slides_html + '\n' + tail
