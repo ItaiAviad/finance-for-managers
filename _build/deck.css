@@ -218,3 +218,33 @@ svg .st.rg.past{opacity:.22}
 @media print{.tl .rg{display:none}}
 .qstem.in{background:#f6f2ea;border-radius:10px;padding:7px 12px;margin-bottom:6px}
 .qstem.in p{font-size:20px;line-height:1.4;font-weight:600}
+
+/* lesson 2 animations: growing bars, flowchart, cell-by-cell tables, tips, interim summaries */
+.ch{display:block;width:100%;height:auto;direction:ltr;unicode-bidi:isolate;font-family:inherit}
+.ch .gb{transform-box:fill-box;transform-origin:center bottom}
+.slide.on .ch .st.show .gb,.slide.on .ch .auto .gb{animation:tlgrow .55s ease both;animation-delay:var(--d,0s)}
+.slide.on .ch .st.show .vl,.slide.on .ch .auto .vl{animation:tlfade .4s ease both;animation-delay:calc(var(--d,0s) + .45s)}
+.ch .hl{transform-box:fill-box;transform-origin:left center}
+.slide.on .ch .st.show .hl{animation:tldraw .8s ease both}
+.ckey{display:flex;gap:22px;justify-content:center;font-size:17px;color:var(--mut);margin-top:4px}
+.ckey i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-left:6px;vertical-align:-1px}
+.fc{display:flex;flex-direction:column;align-items:center}
+.fcq{background:#1b2d55;color:#fff;border-radius:16px;padding:12px 28px;font-size:24px;font-weight:800;box-shadow:0 8px 24px rgba(27,45,85,.25)}
+.fcr{display:grid;gap:20px;width:100%}.fcr.n2{grid-template-columns:1fr 1fr}.fcr.n3{grid-template-columns:repeat(3,1fr)}.fcr.n4{grid-template-columns:repeat(4,1fr)}
+.fcb{display:flex;flex-direction:column;align-items:center}
+.fca{display:block;width:4px;height:40px;background:#ff6a4d;transform-origin:top center;position:relative;margin-top:4px}
+.fca::after{content:'';position:absolute;bottom:-9px;left:-7px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:11px solid #ff6a4d}
+.fcbox{background:#fff;border-radius:16px;box-shadow:0 2px 0 var(--line),0 10px 26px rgba(22,33,58,.08);padding:12px 14px;width:100%;text-align:center;margin-top:12px;border-top:6px solid #ff6a4d;display:flex;flex-direction:column;gap:6px}
+.fcbox b{font-size:22px;color:#1b2d55}.fcbox span{font-size:18px;line-height:1.35}.fcbox .eq{font-size:22px;margin:2px 0}.fcex{font-size:17px;color:var(--mut);background:#f4f1e8;border-radius:10px;padding:6px 8px}
+@keyframes fcdrop{from{transform:scaleY(0)}to{transform:none}}
+.slide.on .fcq.st.show{animation:tlpop .45s ease both}
+.slide.on .fcb.st.show .fca{animation:fcdrop .35s ease both}
+.slide.on .fcb.st.show .fcbox{animation:tlpop .5s .3s ease both}
+.ctb td{text-align:center;vertical-align:top}.ctb td.st{display:table-cell}.ctb td b{display:block;font-size:21px}.ctb .how{display:block;font-size:17px;color:var(--mut);direction:rtl;margin-top:2px}
+@keyframes cellflash{0%{background:#ffe7a8}100%{background:transparent}}
+.slide.on .ctb td.st.show{animation:cellflash 1.4s ease both}
+.ctb.sm td b{font-size:18px}.ctb.sm td{padding:4px 6px}
+.band.tip{background:#e9f7f1;border-right:6px solid #0f9d90}
+.steps.sumup li{font-size:24px}
+
+.route.r6{grid-template-columns:repeat(6,1fr)}.route.r6 .rcard{min-height:0;padding:10px 12px}.route.r6 .rcard b{font-size:19px}.route.r6 .rcard span{font-size:17px}.route.r6 .rcard .n{font-size:30px}

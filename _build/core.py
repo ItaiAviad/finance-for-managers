@@ -25,7 +25,7 @@ def DEF(name, text, demo, n=0, trm=None):
 
 
 def BAND(kind, text, n=0):
-    lab = {'dg': 'דגש', 'trap': 'המלכודת', 'note': 'הערה', 'dg2': 'שני דגשים', 'warn': 'חשוב'}.get(kind, '')
+    lab = {'dg': 'דגש', 'trap': 'המלכודת', 'note': 'הערה', 'dg2': 'שני דגשים', 'warn': 'חשוב', 'tip': 'טיפ'}.get(kind, '')
     inner = (f'<b>{lab}:</b> ' if lab else '') + TX(text)
     return ST(n, inner, cls='band ' + kind) if n else f'<div class="band {kind}">{inner}</div>'
 

@@ -51,7 +51,7 @@ fonts = R('shell/fonts.css')
 base = R('shell/base.css')
 tail = R('shell/tail.html')
 gj = json.dumps(G, ensure_ascii=False)
-js = f'const COURSE={json.dumps(COURSE, ensure_ascii=False)};\nconst G={gj};\n' + R('deck.js')
+js = f'const COURSE={json.dumps(COURSE, ensure_ascii=False)};\nconst LESSONN={LESSON["n"]};\nconst G={gj};\n' + R('deck.js')
 title = f'{COURSE} | שיעור {LESSON["n"]} | {LESSON["title"]}' + (' | טיוטה' if LESSON.get('draft') else '')
 html = (f'<!doctype html>\n<html lang="he" dir="rtl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>{title}</title>\n<style>\n'
         + fonts + base + R('deck.css') + '</style>\n</head>\n<body>\n<div class="stage" id="stage">\n' + slides_html + '\n' + tail
