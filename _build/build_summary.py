@@ -63,6 +63,7 @@ sup,sub{font-size:.68em;line-height:0}
 .band.trap{background:#fde8e6;border-right:1.2mm solid #e0454f}
 .band.warn{background:#fde8e6;border-right:1.6mm solid #c8102e;font-weight:800;color:#8a0f1f}
 .band.tip{background:#e9f7f1;border-right:1.2mm solid #0f9d90}
+.fxchip{margin:.6mm auto;width:fit-content;border:.3mm solid #ffb19c;background:#fff4ef;border-radius:1.5mm;padding:.3mm 2mm;color:#8a2f17}.fxchip .fxc{direction:ltr;unicode-bidi:isolate}
 .eq.seq{display:flex;justify-content:center;gap:2mm;align-items:flex-start}.sg{display:inline-flex;flex-direction:column;align-items:center}.sg .nt{display:block;width:0;min-width:max(100%,22mm);font-size:8.6pt;color:#0b6e65;direction:rtl;text-align:center;border-top:.3mm solid #7fe3d6}
 .ch{display:block;width:100%;max-height:62mm;direction:ltr;break-inside:avoid}
 .ckey{text-align:center;font-size:9.6pt;color:var(--mut)}.ckey i{display:inline-block;width:3mm;height:3mm;margin:0 3mm 0 1mm}

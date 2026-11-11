@@ -9,8 +9,9 @@ FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_conten
 MEASURE = r'''<style>*{transition:none!important;animation:none!important}</style><script>
 const D=window.__deck,st=document.getElementById('stage'),R={};
 D.slides.forEach((s,i)=>{if(!s.classList.contains('qslide'))return;D.show(i);D.setAll(s,true);
- const k=st.getBoundingClientRect().width/1280,top=st.getBoundingClientRect().top,b=e=>(e.getBoundingClientRect().bottom-top)/k;
- const solw=s.querySelector('.solw');const kids=solw?[...solw.children]:[];
+ const k=st.getBoundingClientRect().width/1280,top=st.getBoundingClientRect().top,left0=st.getBoundingClientRect().left,
+   b=e=>((e.getBoundingClientRect().left-left0)/k<30?9999:(e.getBoundingClientRect().bottom-top)/k);
+ const solw=s.querySelector('.solw');const kids=solw?[...solw.children].filter(e=>!e.classList.contains('nostep')):[];
  R[s.id]={steps:kids.filter(e=>!e.classList.contains('band')).map(b),bands:kids.filter(e=>e.classList.contains('band')).map(b),
    right:s.querySelector('.qr')?b(s.querySelector('.qr')):0,limit:720-36};});
 document.documentElement.setAttribute('data-test',JSON.stringify(R));</script></body>'''
@@ -34,13 +35,16 @@ def sol_lists():
     """The final step list of every question, after the linking sentences, as the deck builds them."""
     sys.path.insert(0, H)
     raw = lambda f: open(os.path.join(H, f), encoding='utf8').read()
-    R = lambda f: raw(f).replace('    sol, bounds, tls = _sync(sid, sol, tl, cuts)', '    sol, bounds, tls = _sync(sid, sol, tl, cuts); SOLS[sid] = sol') if f == 'core.py' else raw(f)
+    R = lambda f: raw(f).replace('    sol, bounds, tls = _sync(sid, sol, tl, cuts, wide)', '    sol, bounds, tls = _sync(sid, sol, tl, cuts, wide); SOLS[sid] = sol') if f == 'core.py' else raw(f)
     g = {'MODE': 'deck', 'R': R, '__name__': 'x', 'SOLS': {}}
     for f in FILES[LN]: exec(R(f), g)
+    assert g['SOLS'], 'no worked questions found: the hook line in core.py changed'
     return g['SOLS']
 
 
 SPL = os.path.join(H, 'splits.json' if LN == '1' else f'splits{LN}.json')
+if '--reset' in sys.argv:                       # start from no splits, so stale ones do not leave empty continuation slides
+    json.dump({}, open(SPL, 'w'))
 for rnd in range(8):
     splits = json.load(open(SPL))
     sols = sol_lists()
