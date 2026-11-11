@@ -326,10 +326,8 @@ def _sync(sid, sol, tl, cuts, wide=False):
         rg = [dict(r, s=cum(r['s'])) for r in rg]
         if j == 0:
             out.append(tl.redo(moves=mv, rings=rg))
-        elif rg or any(m['s'] for m in mv):     # a continuation slide repeats the timeline only when it marks something new on it
+        else:                                   # a continuation slide always repeats the timeline, with what is already drawn
             out.append(tl.redo(moves=mv, rings=rg, W=1120, fs=16, fh=24) if wide else tl.redo(moves=mv, rings=rg, W=560, fs=17, fh=30))
-        else:
-            out.append(None)
     return sol2, bounds, out
 
 
@@ -356,7 +354,8 @@ def Q(sid, tag, title, stem, sol, ans, note=None, tl=None, split=None, wide=Fals
         # one flow in two columns: the question and its timeline open the right column, and the steps continue
         # below them and then into the left column, so the whole idea stays on one screen
         hint = '<div class="qhint nostep">' + TX('לחצו כדי לחשוף את הפתרון, שלב אחר שלב' if j == 0 else 'לחצו כדי להמשיך בפתרון') + '</div>'
-        qs = f'<div class="card qstem nostep {stemfs}">{stem_html}</div>' if stem and j == 0 else ''
+        # a continuation slide quotes the question again, so the reader never has to go back a slide
+        qs = (f'<div class="card qstem nostep {stemfs}">{stem_html}</div>' if j == 0 else f'<div class="card qstem nostep sm cont"><b class="qcont">{TX("השאלה, להמשך הפתרון:")}</b>{stem_html}</div>') if stem else ''
         tw = f'<div class="card tlw nostep{" cont" if j else ""}">{t}</div>' if t else ''
         top = tw + qs if wide else qs + tw      # a wide timeline spans the slide first; the question opens the right column
         body = f'<div class="solw qflow{" wide" if wide else ""}">{top}{hint}{part}{end}</div>'
