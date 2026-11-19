@@ -384,6 +384,26 @@ def CAP(t):
     return f'<p class="cap">{TX(t)}</p>'
 
 
+def GO(label, target):
+    """A link to a slide: 'id' in this deck, or 'N:id' in lesson N's deck (opens in a new tab). Plain text in the PDF."""
+    if MODE != 'deck':
+        return TX(label)
+    if ':' in target:
+        ln, sid = target.split(':', 1)
+        return f'<a class="go" href="../lecture-{ln}/presentation.html#{sid}" target="_blank">{TX(label)}</a>'
+    return f'<a class="go" data-go="{target}">{TX(label)}</a>'
+
+
+def MAPTABLE(rows, rev=1):
+    """The assignment map: (question, topic, [(label, target)]); the slide references are links. Rows reveal one by one."""
+    h = '<tr>' + ''.join(f'<th>{TX(x)}</th>' for x in ('במטלה', 'הנושא', 'איפה במצגות (לחצו כדי לעבור)')) + '</tr>'
+    b = ''
+    for i, (q, t, refs) in enumerate(rows):
+        tr = f'<tr class="st" data-n="{(rev + i - 1) * 10}">' if rev and i else '<tr>'
+        b += tr + f'<td>{TX(q)}</td><td>{TX(t)}</td><td>' + ' · '.join(GO(l, g) for l, g in refs) + '</td></tr>'
+    return f'<table class="tbl2 mmn">{h}{b}</table>'
+
+
 
 
 exec(R('anim.py'))

@@ -302,3 +302,5 @@ svg .st.rg.past{opacity:.22}
 .mcq{min-width:0}
 
 .qstem.cont p{font-size:17.5px;line-height:1.35;margin:2px 0}.qstem.cont .qcont{display:block;font-size:17px;color:#c4421f;margin-bottom:2px}
+.go{color:#0b6e65;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.go:hover{color:#ff6a4d}
