@@ -4,7 +4,7 @@ H = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, H)
 R = lambda f: open(os.path.join(H, f), encoding='utf8').read()
 MODE = 'pdf'
-FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',)}
+FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',), '3': ('l3_content.py',)}
 LN = os.environ.get('LESSON', '1')
 for f in FILES[LN]:
     exec(R(f))
@@ -123,6 +123,8 @@ tr{break-inside:avoid}
 .gl small{font-weight:400;color:var(--mut);direction:ltr;unicode-bidi:isolate;margin-right:1.5mm;font-size:9.6pt}
 .gl p{margin:0 0 .3mm}
 '''
+if int(LN) >= 3:
+    CSS += R('pdf3.css')
 parts = {}
 for s in SL:
     parts.setdefault(s['part'], []).append(s)

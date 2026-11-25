@@ -5,7 +5,7 @@ H = os.path.dirname(os.path.abspath(__file__))
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 LN = os.environ.get('LESSON', '1')
 DECK = os.path.join(H, '..', 'lectures', f'lecture-{LN}', 'presentation.html')
-FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',)}
+FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',), '3': ('l3_content.py',)}
 MEASURE = r'''<style>*{transition:none!important;animation:none!important}</style><script>
 const D=window.__deck,st=document.getElementById('stage'),R={};
 D.slides.forEach((s,i)=>{if(!s.classList.contains('qslide'))return;D.show(i);D.setAll(s,true);
@@ -28,7 +28,7 @@ def measure():
 
 
 def is_eq(qid, idx, sols):
-    return sols[qid][idx].startswith('=')
+    return sols[qid][idx][:1] == '=' or sols[qid][idx].startswith('#fx:')
 
 
 def sol_lists():
@@ -63,8 +63,10 @@ for rnd in range(8):
                 over = len(m['steps']) - 1          # only the answer or notes overflow: the last step moves on
             if over is None: continue
             cut = bounds[j] + over
-            while cut > bounds[j] and sols[qid][cut].startswith('=='):
-                cut -= 1                            # a continuation line stays with the equation it continues
+            while cut > bounds[j] and (sols[qid][cut].startswith('==') or sols[qid][cut].startswith('?')):
+                cut -= 1                            # a continuation line stays with its equation, an explanation button with its step
+            while cut > bounds[j] and sols[qid][cut - 1].startswith('#fx:'):
+                cut -= 1                            # lesson 3: a formula chip stays with the calculation that applies it
             if cut > bounds[j] and is_eq(qid, cut, sols) and not is_eq(qid, cut - 1, sols):
                 cut -= 1                            # keep a sentence together with the equation it introduces
             if cut <= bounds[j]:
@@ -74,3 +76,37 @@ for rnd in range(8):
     json.dump(splits, open(SPL, 'w'), indent=0, sort_keys=True)
     print('round', rnd, 'changed' if changed else 'stable', report)
     if not changed: break
+
+
+def _back(cut, lo, sol):
+    """Move a cut one item back, keeping a continuation line, a button, a chip and an introducing sentence with their equation."""
+    cut -= 1
+    while cut > lo and (sol[cut].startswith('==') or sol[cut].startswith('?')): cut -= 1
+    while cut > lo and sol[cut - 1].startswith('#fx:'): cut -= 1
+    if cut > lo and sol[cut][:1] == '=' and not (sol[cut - 1][:1] == '=' or sol[cut - 1].startswith('#fx:')): cut -= 1
+    return cut
+
+
+if '--balance' in sys.argv:                     # a last slide that would hold only a sentence and the answer takes the last calculation too
+    for rnd in range(3):
+        splits, sols = json.load(open(SPL)), sol_lists()
+        tried = {}
+        for qid, cuts in splits.items():
+            sol = sols[qid]
+            if not cuts: continue
+            tail = [x for x in sol[cuts[-1]:] if not x.startswith('?')]
+            if len(tail) > 2 or any(x[:1] == '=' for x in tail): continue
+            lo = cuts[-2] if len(cuts) > 1 else 0
+            new = _back(cuts[-1], lo, sol)
+            if new <= lo + 1: continue
+            tried[qid] = cuts[:]; splits[qid] = cuts[:-1] + [new]
+        if not tried: break
+        json.dump(splits, open(SPL, 'w'), indent=0, sort_keys=True)
+        M = measure()
+        for qid, old in tried.items():
+            n = len(splits[qid])
+            ids = [qid + ('' if j == 0 else 'bcdefg'[j - 1]) for j in (n - 1, n)]
+            bad = any(max((M.get(i) or {}).get('steps', [0]) + (M.get(i) or {}).get('bands', [0]) + [0]) > (M.get(i) or {}).get('limit', 9e9) + .5 for i in ids)
+            if bad: splits[qid] = old
+        json.dump(splits, open(SPL, 'w'), indent=0, sort_keys=True)
+        print('balance round', rnd, {q: splits[q] for q in tried})

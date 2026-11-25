@@ -4,7 +4,7 @@ H = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, H)
 R = lambda f: open(os.path.join(H, f), encoding='utf8').read()
 MODE = 'deck'
-FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',)}
+FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',), '3': ('l3_content.py',)}
 LN = os.environ.get('LESSON', '1')
 for f in FILES[LN]:
     exec(R(f))
@@ -52,10 +52,12 @@ fonts = R('shell/fonts.css')
 base = R('shell/base.css')
 tail = R('shell/tail.html')
 gj = json.dumps(G, ensure_ascii=False)
-js = f'const COURSE={json.dumps(COURSE, ensure_ascii=False)};\nconst LESSONN={LESSON["n"]};\nconst G={gj};\n' + R('deck.js')
+X3 = int(LN) >= 3      # lesson 3 on: its own CSS and JS, so the taught decks rebuild unchanged
+CSS3 = R('deck3.css') if X3 else ''
+js = f'const COURSE={json.dumps(COURSE, ensure_ascii=False)};\nconst LESSONN={LESSON["n"]};\nconst G={gj};\n' + R('deck.js') + ('\n' + R('deck3.js') if X3 else '')
 title = f'{COURSE} | שיעור {LESSON["n"]} | {LESSON["title"]}' + (' | טיוטה' if LESSON.get('draft') else '')
 html = (f'<!doctype html>\n<html lang="he" dir="rtl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>{title}</title>\n<style>\n'
-        + fonts + base + R('deck.css') + '</style>\n</head>\n<body>\n<div class="stage" id="stage">\n' + slides_html + '\n' + tail
+        + fonts + base + R('deck.css') + CSS3 + '</style>\n</head>\n<body>\n<div class="stage" id="stage">\n' + slides_html + '\n' + tail
         + '<script>\n(function(){\n' + js + '\n})();\n</script>\n</body>\n</html>\n')
 
 for bad in ('—', '־'):
@@ -65,9 +67,9 @@ os.makedirs(out, exist_ok=True)
 open(os.path.join(out, 'presentation.html'), 'w', encoding='utf8').write(html)
 
 # every class used in the markup or in the scripts needs a CSS rule
-css = fonts + base + R('deck.css')
+css = fonts + base + R('deck.css') + CSS3
 used = set()
-for m in re.finditer(r'class="([^"]+)"', slides_html + tail + R('deck.js')):
+for m in re.finditer(r'class="([^"]+)"', slides_html + tail + R('deck.js') + (R('deck3.js') if X3 else '')):
     for c in m.group(1).split():
         if re.fullmatch(r'[\w-]+', c): used.add(c)
 missing = sorted(c for c in used if not re.search(r'\.' + re.escape(c) + r'(?![\w-])', css))
