@@ -21,3 +21,7 @@
 .cft.ltr{direction:ltr}
 .xbrow .xbw{display:block}
 .fxsep{margin:0 3mm}
+
+.card.solg{text-align:center;break-inside:avoid}.card.solg .sch{width:70mm;direction:ltr}.schrow3{display:flex;gap:4mm;justify-content:center}.schrow3 .sch{width:55mm}.schl{font-weight:700}
+.mcov td.cov b{display:block}.mcov td.cov small{display:block;color:#5d6a86}
+.sch text{font-family:"David"}
