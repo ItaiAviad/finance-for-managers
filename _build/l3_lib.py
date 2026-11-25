@@ -130,6 +130,8 @@ _fam0 = families
 
 def families(e):
     f = _fam0(e)
+    if re.match(r'\s*NPV_\{\w+\} - NPV_\{\w+\} =', e):
+        return set()                            # a difference of two NPVs: its own formula is written out on the slide
     if re.match(r'\s*NPV', e):
         rhs = e.split('=', 1)[1] if '=' in e else ''
         r1 = rhs.split(' = ')[0]
