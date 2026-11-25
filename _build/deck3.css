@@ -57,3 +57,14 @@
 .demo .m,.card .m,.band .m,.sp .m,.fcex .m{white-space:normal}.m>.st{white-space:nowrap}
 .fxone{white-space:nowrap;display:inline-block}.fxsep{margin:0 12px;color:#c4421f;font-weight:800}
 .eq.seq{align-items:baseline}
+
+/* a graph inside a worked solution (lesson 3 fixes, 2026-11-26) */
+.card.solg{padding:4px 8px 2px;margin:4px 0}
+.card.solg .sch{width:100%;max-width:340px;display:block;margin:0 auto;direction:ltr}
+.card.solg .cvx{width:100%}
+.schrow3{display:flex;gap:10px;justify-content:center}.schrow3 .schw{flex:1;text-align:center}.schrow3 .sch{width:100%}
+.schl{font-size:17px;font-weight:700;color:var(--ink2)}
+.schw{display:inline-block}
+.mcov td.cov b{display:block;white-space:nowrap}.mcov td.cov small{display:block;font-size:16.5px;color:#5d6a86;line-height:1.25}
+.mcov td.cov.y b{color:#14612f}.mcov td.cov.p b{color:#8a5a00}.mcov td.cov.n b{color:#a1300f}
+.tbl2.mcov{font-size:16.5px}.tbl2.mcov td,.tbl2.mcov th{padding:3px 8px;line-height:1.25}

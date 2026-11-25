@@ -304,7 +304,7 @@ def _seq(e, n, cls='eq', prev=''):
 
 
 def seg_count(it):
-    if it.startswith('@') or it.startswith('#fx:'): return 1
+    if it.startswith('@') or it.startswith('#fx:') or it.startswith('%'): return 1
     if it.startswith('?'): return 0
     if it.startswith('=!'): return len(eq_pieces(it[2:]))
     if it.startswith('=') and not is_formula(it[1:]): return len(eq_pieces(it[1:]))
@@ -330,6 +330,8 @@ def _solitems(items, start=1):
             i = int(it[1:]); out.append(_drow(_DATA[0][i], i, n, i == 0)); n += 1; continue
         if it.startswith('#fx:'):
             out.append(_chip(set(it[4:].split(',')), n)); n += 1; continue
+        if it.startswith('%'):      # a ready block (a graph) as one step of the solution
+            out.append(ST(n, it[1:], cls='card solg')); n += 1; continue
         if it.startswith('?'):
             lab, _, txt = it[1:].partition('|')
             out.append(f'<div class="st xbq" data-n="{max(n - 1, 1) * 10}">{XB(lab, txt.split(" || "))}</div>'); continue

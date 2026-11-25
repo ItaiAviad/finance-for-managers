@@ -4,7 +4,7 @@ H = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, H)
 R = lambda f: open(os.path.join(H, f), encoding='utf8').read()
 MODE = 'pdf'
-FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',), '3': ('l3_content.py',)}
+FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',), '3': ('l3_content.py',), '4': ('l4_content.py',)}
 LN = os.environ.get('LESSON', '1')
 for f in FILES[LN]:
     exec(R(f))
@@ -125,6 +125,9 @@ tr{break-inside:avoid}
 '''
 if int(LN) >= 3:
     CSS += R('pdf3.css')
+if int(LN) >= 4:
+    import glob as _glob
+    CSS += ''.join(R(os.path.basename(f)) for f in sorted(_glob.glob(os.path.join(H, 'pdf4*.css'))))
 parts = {}
 for s in SL:
     parts.setdefault(s['part'], []).append(s)
@@ -157,7 +160,7 @@ for f in ('david.ttf', 'davidbd.ttf'):
     shutil.copy(os.path.join(FONTS, f), d)
 p = os.path.join(d, 'summary.html')
 open(p, 'w', encoding='utf8').write(page)
-out = os.path.abspath(os.path.join(H, '..', 'lectures', f'lecture-{LN}', 'summary.pdf'))
+out = os.path.abspath(os.path.join(os.environ.get('OUTDIR') or os.path.join(H, '..', 'lectures', f'lecture-{LN}'), 'summary.pdf'))
 subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--no-sandbox', f'--user-data-dir={d}/p', '--no-pdf-header-footer', '--virtual-time-budget=8000', f'--print-to-pdf={out}', 'file://' + p], capture_output=True, timeout=180)
 import fitz
 doc = fitz.open(out)
