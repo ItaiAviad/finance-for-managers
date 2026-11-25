@@ -5,7 +5,7 @@ H = os.path.dirname(os.path.abspath(__file__))
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 LN = os.environ.get('LESSON', '1')
 DECK = os.path.join(H, '..', 'lectures', f'lecture-{LN}', 'presentation.html')
-FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',)}
+FILES = {'1': ('content_a.py', 'content_b.py', 'content_c.py'), '2': ('l2_content.py',), '3': ('l3_content.py',)}
 MEASURE = r'''<style>*{transition:none!important;animation:none!important}</style><script>
 const D=window.__deck,st=document.getElementById('stage'),R={};
 D.slides.forEach((s,i)=>{if(!s.classList.contains('qslide'))return;D.show(i);D.setAll(s,true);

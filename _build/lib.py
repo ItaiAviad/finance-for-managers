@@ -184,7 +184,7 @@ def TL(*args, **kw):
     return TLS(_TL(*args, **kw), args, kw)
 
 
-def _TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=46, fstep=0, rings=None):
+def _TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=46, fstep=0, rings=None, negs=None):
     """Timeline as inline SVG, time running left to right.
     ticks: labels in order ('...' draws dots). flows: {tick: label or ''}. moves: dicts a, b, t (caption), s (reveal step).
     brace: (from, to, label, step). marks: {tick: label}, a dotted line up to a bold label."""
@@ -217,8 +217,12 @@ def _TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=
     fl = []
     for i, (k, lab) in enumerate(flows.items()):
         x = X[str(k)]
-        g = f'<line x1="{x:.1f}" y1="{y0}" x2="{x:.1f}" y2="{ay + 8}" stroke="#ff6a4d" stroke-width="3"/><polygon points="{x:.1f},{ay} {x - 5.5:.1f},{ay + 11} {x + 5.5:.1f},{ay + 11}" fill="#ff6a4d"/>'
-        if lab: g += _txt(x, ly, lab, fs - 1, W, fill='#b8391f', weight=700)
+        if negs and k in negs:     # an outflow (investment, payment): the arrow points down into the axis, in navy
+            g = f'<line x1="{x:.1f}" y1="{ay}" x2="{x:.1f}" y2="{y0 - 9}" stroke="#1b2d55" stroke-width="3"/><polygon points="{x:.1f},{y0 - 1} {x - 5.5:.1f},{y0 - 12} {x + 5.5:.1f},{y0 - 12}" fill="#1b2d55"/>'
+            if lab: g += _txt(x, ly, lab, fs - 1, W, fill='#1b2d55', weight=700)
+        else:
+            g = f'<line x1="{x:.1f}" y1="{y0}" x2="{x:.1f}" y2="{ay + 8}" stroke="#ff6a4d" stroke-width="3"/><polygon points="{x:.1f},{ay} {x - 5.5:.1f},{ay + 11} {x + 5.5:.1f},{ay + 11}" fill="#ff6a4d"/>'
+            if lab: g += _txt(x, ly, lab, fs - 1, W, fill='#b8391f', weight=700)
         fl.append(f'<g class="an fl" style="--d:{.35 + i * .12:.2f}s">{g}</g>')
     p.append(f'<g{_st(fstep)}>' + ''.join(fl) + '</g>' if fstep else ''.join(fl))
     for k, lab in marks.items():
@@ -260,7 +264,8 @@ def _TL(ticks, flows=None, moves=None, brace=None, marks=None, W=560, fs=17, fh=
         ym += fs + 26
     H = ym - 8 if moves else y0 + fs + 16
     k = []
-    if flows: k.append('<span><i class="kf"></i>תזרים</span>')
+    if flows and negs: k.append('<span><i class="kf"></i>תקבול</span>'); k.append('<span><i class="kn"></i>תשלום</span>')
+    elif flows: k.append('<span><i class="kf"></i>תזרים</span>')
     if any(X[str(m['b'])] > X[str(m['a'])] for m in moves): k.append('<span><i class="kv"></i>דחיפה קדימה</span>')
     if any(X[str(m['b'])] < X[str(m['a'])] for m in moves): k.append('<span><i class="kb"></i>משיכה אחורה</span>')
     if any(m['a'] == m['b'] for m in moves): k.append('<span><i class="kd"></i>לאן הגיעה הנוסחה</span>')
